@@ -1,4 +1,5 @@
 import 'package:agendai/presenter/home_presenter.dart';
+import 'package:agendai/widgets/app_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -73,46 +74,7 @@ class _HomeState extends State<Home> {
         centerTitle: true,
         toolbarHeight: 100,
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blueGrey,
-              ),
-              child: Text(
-                'Menu',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.all_inbox_rounded),
-              title: Text('Serviços'),
-              onTap: () {
-                Navigator.pushNamed(context, '/home');
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.accessibility_new_rounded),
-              title: Text('Funcionários'),
-              onTap: () {
-                //Navigator.pushNamed(context, '/funcionarios');
-              },
-            ),
-            // ListTile(
-            //   leading: Icon(Icons.settings),
-            //   title: Text('Configurações'),
-            //   onTap: () {
-            //     //Navigator.pushNamed(context, '/config');
-            //   },
-            // ),
-          ],
-        ),
-      ),
+      drawer: AppDrawer(),
       body: Center(
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 30),

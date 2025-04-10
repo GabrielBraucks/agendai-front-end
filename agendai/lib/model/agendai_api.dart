@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:agendai/entity/employee.dart';
 import 'package:agendai/entity/service.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -61,6 +62,7 @@ class AgendaiApi {
     if (response.statusCode <= 299) {
       final responseData = jsonDecode(response.body);
       String jwtToken = responseData['token'];
+      print("Bianca $jwtToken");
       int idEnterprise = responseData['empresa']['id'];
       saveTokenAndId(jwtToken, idEnterprise);
       return [jwtToken, idEnterprise];
@@ -152,6 +154,7 @@ class AgendaiApi {
     }
   }
 
+  // Deletar Servico
   Future<void> deleteService(int id) async {
     _jwtToken = await getToken();
     if (_jwtToken == null) {
@@ -170,7 +173,98 @@ class AgendaiApi {
     if (response.statusCode == 201) {
       print('Serviço deletado com sucesso!');
     } else {
-      throw Exception('Falha ao listar TODOs: ${response.body}');
+      throw Exception('Falha ao listar Servicos: ${response.body}');
+    }
+  }
+
+  // Registrar funcionario
+  Future<void> createEmployee({
+    required String name,
+    required String cpf,
+    required String jobTitle,
+    required String email,
+    required String celPhone,
+    required String password,
+    required String birthday,
+  }) async {
+    if (_jwtToken == null) {
+      throw Exception('Usuário não autenticado.');
+    }
+
+    final url = Uri.parse('$baseUrl/funcionarios/register');
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $_jwtToken',
+      },
+      body: jsonEncode({
+        "nome": name,
+        "cpf": cpf,
+        "cargo": jobTitle,
+        "email": email,
+        "telefone": celPhone,
+        "senha": password,
+        "data_nasc": birthday,
+      }),
+    );
+    if (response.statusCode == 201) {
+      print('Funcionario criado com sucesso!');
+    } else {
+      throw Exception('Falha ao registrar funcionario: ${response.body}');
+    }
+  }
+
+  // Listar funcionario
+  Future<List<Employee>> getEmployees() async {
+    _jwtToken = await getToken();
+    _idEnterprise = await getId();
+    if (_jwtToken == null) {
+      throw Exception('Usuário não autenticado.');
+    }
+    final url =
+        Uri.parse('$baseUrl/funcionarios/listarPelaEmpresa/$_idEnterprise');
+
+    final response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $_jwtToken',
+      },
+    );
+    if (response.statusCode == 201) {
+      final List<dynamic> jsonResponse = jsonDecode(response.body);
+      final responseData = jsonResponse
+          .map((funcionario) => Employee.fromJson(funcionario))
+          .toList();
+      return responseData;
+    } else {
+      throw Exception('Falha ao listar Funcionarios: ${response.body}');
+    }
+  }
+
+  Future<Employee> getIdEmployee(int id) async {
+    _jwtToken = await getToken();
+    _idEnterprise = await getId();
+    if (_jwtToken == null) {
+      throw Exception('Usuário não autenticado.');
+    }
+    final url = Uri.parse('$baseUrl/funcionarios/consultar/$id');
+
+    final response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $_jwtToken',
+      },
+    );
+    if (response.statusCode == 201) {
+      final jsonResponse = jsonDecode(response.body);
+      final funcionario = Employee.fromJson(jsonResponse);
+      print("bianca: $funcionario");
+      return funcionario;
+    } else {
+      throw Exception('Falha ao listar detalhe: ${response.body}');
     }
   }
 }
