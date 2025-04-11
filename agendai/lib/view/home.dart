@@ -158,7 +158,7 @@ class _HomeState extends State<Home> {
                                         : 2,
                             crossAxisSpacing: 10,
                             mainAxisSpacing: 10,
-                            childAspectRatio: 1, // quadrado
+                            childAspectRatio: 1,
                             children: List.generate(
                               presenter.servicos.length,
                               (index) {

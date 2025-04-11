@@ -177,6 +177,44 @@ class AgendaiApi {
     }
   }
 
+  Future<void> updateEmployee({
+    required int id,
+    required String name,
+    required String cpf,
+    required String jobTitle,
+    required String email,
+    required String celPhone,
+    required String birthday,
+  }) async {
+    _jwtToken = await getToken();
+    if (_jwtToken == null) {
+      throw Exception('Usuário não autenticado.');
+    }
+    final url = Uri.parse('$baseUrl/funcionarios/$id');
+
+    final response = await http.put(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $_jwtToken',
+      },
+      body: jsonEncode({
+        "nome": name,
+        "cpf": cpf,
+        "cargo": jobTitle,
+        "email": email,
+        "telefone": celPhone,
+        "data_nasc": birthday,
+      }),
+    );
+
+    if (response.statusCode == 201) {
+      print('Serviço Atualizado com sucesso!');
+    } else {
+      throw Exception('Falha ao atualizar Servicos: ${response.body}');
+    }
+  }
+
   // Registrar funcionario
   Future<void> createEmployee({
     required String name,
@@ -208,6 +246,8 @@ class AgendaiApi {
         "data_nasc": birthday,
       }),
     );
+
+    print("bianca $response");
     if (response.statusCode == 201) {
       print('Funcionario criado com sucesso!');
     } else {
@@ -243,6 +283,7 @@ class AgendaiApi {
     }
   }
 
+  // Detalhe do Funcionario
   Future<Employee> getIdEmployee(int id) async {
     _jwtToken = await getToken();
     _idEnterprise = await getId();

@@ -1,20 +1,22 @@
-import 'package:agendai/presenter/servico_presenter.dart';
+import 'package:agendai/presenter/employees_register_presenter.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-class Service extends StatefulWidget {
-  const Service({super.key});
+class EmployeesRegister extends StatefulWidget {
+  const EmployeesRegister({super.key});
 
   @override
-  State<Service> createState() => _TodoState();
+  State<EmployeesRegister> createState() => _EmployeesRegistertate();
 }
 
-class _TodoState extends State<Service> {
+class _EmployeesRegistertate extends State<EmployeesRegister> {
   final nameController = TextEditingController();
-  final durationController = TextEditingController();
-  final categoryController = TextEditingController();
-  final valueController = TextEditingController();
+  final cpfController = TextEditingController();
+  final jobTitleController = TextEditingController();
+  final emailController = TextEditingController();
+  final celPhoneController = TextEditingController();
+  final passwordController = TextEditingController();
+  final birthdayController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -23,11 +25,11 @@ class _TodoState extends State<Service> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: false,
-        title: const Text('Novo Serviço'),
+        title: const Text('Cadastro funcionário'),
       ),
-      body: Consumer<ServicePresenter>(
+      body: Consumer<EmployeesRegisterPresenter>(
         builder: (context, presenter, child) {
-          if (presenter.loadingService) {
+          if (presenter.loadingPage) {
             return const Center(child: CircularProgressIndicator());
           }
 
@@ -73,30 +75,76 @@ class _TodoState extends State<Service> {
                             ),
                             const SizedBox(height: 16),
                             TextFormField(
-                              controller: valueController,
+                              controller: cpfController,
                               keyboardType:
                                   const TextInputType.numberWithOptions(
                                       decimal: true),
-                              inputFormatters: [
-                                FilteringTextInputFormatter.allow(
-                                    RegExp(r'^\d*\.?\d{0,2}')),
-                              ],
                               decoration: const InputDecoration(
-                                labelText: 'Valor (em R\$)',
+                                labelText: 'CPF',
                                 border: OutlineInputBorder(),
                               ),
                             ),
                             const SizedBox(height: 16),
                             TextFormField(
-                              controller: durationController,
+                              controller: jobTitleController,
                               decoration: const InputDecoration(
-                                labelText: 'Duração',
+                                labelText: 'Trabalho',
                                 border: OutlineInputBorder(),
                               ),
                             ),
                             const SizedBox(height: 16),
                             TextFormField(
-                              controller: categoryController,
+                              controller: emailController,
+                              decoration: const InputDecoration(
+                                labelText: 'E-mail',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: celPhoneController,
+                              decoration: const InputDecoration(
+                                labelText: 'Celular',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            // TextFormField(
+                            //   controller: birthdayController,
+                            //   decoration: const InputDecoration(
+                            //     labelText: 'Aniversário',
+                            //     border: OutlineInputBorder(),
+                            //   ),
+                            // ),
+                            TextFormField(
+                              controller: birthdayController,
+                              readOnly: true,
+                              decoration: const InputDecoration(
+                                labelText: 'Aniversário (AAAA-MM-DD)',
+                                border: OutlineInputBorder(),
+                                suffixIcon: Icon(Icons.calendar_today),
+                              ),
+                              onTap: () async {
+                                final DateTime? pickedDate =
+                                    await showDatePicker(
+                                  context: context,
+                                  initialDate: DateTime(2000),
+                                  firstDate: DateTime(1900),
+                                  lastDate: DateTime.now(),
+                                );
+                                if (pickedDate != null) {
+                                  final formattedDate =
+                                      "${pickedDate.year.toString().padLeft(4, '0')}"
+                                      "-${pickedDate.month.toString().padLeft(2, '0')}"
+                                      "-${pickedDate.day.toString().padLeft(2, '0')}";
+                                  birthdayController.text = formattedDate;
+                                }
+                              },
+                            ),
+
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: passwordController,
                               decoration: const InputDecoration(
                                 labelText: 'Categoria',
                                 border: OutlineInputBorder(),
@@ -138,23 +186,26 @@ class _TodoState extends State<Service> {
                                   ),
                                   onPressed: () async {
                                     final name = nameController.text;
-                                    final value = double.tryParse(
-                                            valueController.text
-                                                .replaceAll(',', '.')) ??
-                                        0.0;
-                                    final duration = durationController.text;
-                                    final category = categoryController.text;
+                                    final cpf = cpfController.text;
+                                    final jobTitle = jobTitleController.text;
+                                    final email = emailController.text;
+                                    final celPhone = celPhoneController.text;
+                                    final password = passwordController.text;
+                                    final birthday = birthdayController.text;
 
                                     if (name.isNotEmpty &&
-                                        duration.isNotEmpty &&
-                                        category.isNotEmpty) {
+                                        cpf.isNotEmpty &&
+                                        jobTitle.isNotEmpty) {
                                       await context
-                                          .read<ServicePresenter>()
-                                          .createService(
+                                          .read<EmployeesRegisterPresenter>()
+                                          .registerEmployee(
                                             name: name,
-                                            value: value.toInt(),
-                                            duration: duration,
-                                            category: category,
+                                            cpf: cpf,
+                                            jobTitle: jobTitle,
+                                            email: email,
+                                            celPhone: celPhone,
+                                            password: password,
+                                            birthday: birthday,
                                           );
 
                                       Navigator.pop(context, true);
