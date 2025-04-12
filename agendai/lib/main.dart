@@ -11,6 +11,7 @@ import 'package:agendai/view/employees_register.dart';
 import 'package:agendai/view/home.dart';
 import 'package:agendai/view/login.dart';
 import 'package:agendai/view/register.dart';
+import 'package:agendai/view/scheduling.dart';
 import 'package:agendai/view/service.dart';
 import 'package:agendai/view/splash.dart';
 import 'package:flutter/material.dart';
@@ -44,6 +45,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Todo App',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
@@ -57,6 +59,7 @@ class MyApp extends StatelessWidget {
         '/service': (context) => const Service(),
         '/employees': (context) => const Employees(),
         '/employee-form': (context) => const EmployeesRegister(),
+        '/scheduling': (context) => const Scheduling(),
       },
     );
   }

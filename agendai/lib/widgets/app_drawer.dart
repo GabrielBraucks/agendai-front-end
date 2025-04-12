@@ -22,6 +22,13 @@ class AppDrawer extends StatelessWidget {
             ),
           ),
           ListTile(
+            leading: const Icon(Icons.calendar_month),
+            title: const Text('Agenda'),
+            onTap: () {
+              Navigator.pushNamed(context, '/scheduling');
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.all_inbox_rounded),
             title: const Text('Serviços'),
             onTap: () {
@@ -35,14 +42,6 @@ class AppDrawer extends StatelessWidget {
               Navigator.pushNamed(context, '/employees');
             },
           ),
-          // Você pode reativar ou adicionar mais itens conforme necessário:
-          // ListTile(
-          //   leading: Icon(Icons.settings),
-          //   title: Text('Configurações'),
-          //   onTap: () {
-          //     Navigator.pushNamed(context, '/config');
-          //   },
-          // ),
         ],
       ),
     );
