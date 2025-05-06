@@ -45,7 +45,6 @@ class _RegisterState extends State<Register> {
                     Icon(
                       Icons.account_balance_rounded,
                       size: 35,
-                      color: Color(0xFF620096),
                     ),
                     const Text(
                       'Vamos começar!',

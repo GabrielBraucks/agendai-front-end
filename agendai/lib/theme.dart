@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+Color _colorPrimary = const Color(0xFF6a00b0);
+//Color _colorSecondary = const Color(0xFF3101B9);
+
 class AppTheme {
   // Tema claro
   static final ThemeData lightTheme = ThemeData(
@@ -7,21 +10,36 @@ class AppTheme {
     fontFamily: 'Montserrat',
 
     // AppBar
-    appBarTheme: const AppBarTheme(
+    appBarTheme: AppBarTheme(
+      backgroundColor: Color(0xFFf2f6fc),
       iconTheme: IconThemeData(
-        color: Colors.white, // Defina a cor desejada aqui
+        color: Colors.black,
       ),
-      color: Color(0xFF6a00b0),
-      centerTitle: true,
+      centerTitle: false,
       titleTextStyle: TextStyle(
-        color: Colors.white,
+        color: Colors.black,
         fontSize: 20,
       ),
     ),
 
-    // Ícones
+    // Background
+    scaffoldBackgroundColor: Color(0xFFf2f6fc),
+    textTheme: const TextTheme(
+      bodyMedium: TextStyle(
+        color: Colors.black,
+      ),
+    ),
+
+    // icon
     iconTheme: const IconThemeData(
-      color: Colors.white,
+      color: Color(0xFF620096),
+    ),
+
+    // IconButton
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(
+        foregroundColor: _colorPrimary,
+      ),
     ),
 
     // ProgressIndicator
@@ -30,73 +48,87 @@ class AppTheme {
     ),
 
     // Definir um esquema de cores para o app
-    colorScheme: ColorScheme.fromSwatch().copyWith(
-      primary: const Color(0xFF6a00b0),
-      //secondary: const Color(0xFF3101B9), // Cor secundária/accen
-      background: const Color(0xFF6a00b0),
-      surface: const Color(0xFF6a00b0),
+    // colorScheme: ColorScheme.fromSwatch().copyWith(
+    //   primary: const Color(0xFF6a00b0),
+    //   surface: const Color(0xFF6a00b0),
+    // ),
+
+    // TextField
+    inputDecorationTheme: InputDecorationTheme(
+      contentPadding: const EdgeInsets.symmetric(
+        vertical: 10,
+        horizontal: 15,
+      ),
+      filled: true,
+      fillColor: const Color(0xFFFFFFFF),
+      labelStyle: const TextStyle(
+        color: Colors.black,
+        fontSize: 16,
+      ),
+      floatingLabelStyle: TextStyle(
+        color: Color(0xFF620096),
+      ),
+      border: OutlineInputBorder(),
+      enabledBorder: OutlineInputBorder(
+        borderSide: BorderSide(
+          color: Colors.black,
+          width: 1.0,
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderSide: BorderSide(
+          color: Color(0xFF620096),
+          width: 2.0,
+        ),
+      ),
+
+      // hintStyle: const TextStyle(
+      //   color: Color(0xFF3101B9),
+      //   fontWeight: FontWeight.normal,
+      // ),
     ),
 
-    // Configurar cor para botões e seus textos.
+    cardTheme: CardTheme(
+      color: Colors.white,
+      elevation: 6,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+    ),
+
+    // ElevatedButton
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        textStyle: const TextStyle(
-          color: Colors.white,
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
+        backgroundColor: _colorPrimary,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(
+          vertical: 5,
+          horizontal: 25,
         ),
-        backgroundColor: const Color(0xFF3101B9),
-        foregroundColor: const Color(0xFFFFFFFF),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(15),
         ),
-        side: const BorderSide(
-          color: Colors.white,
-          width: 1.5,
-        ),
       ),
     ),
 
-    // Configurar cor para TextField
-    inputDecorationTheme: InputDecorationTheme(
-      contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-      filled: true,
-      fillColor: const Color(0xFFFFFFFF),
-      focusedBorder: OutlineInputBorder(
-        borderSide: BorderSide.none,
-        borderRadius: BorderRadius.circular(15),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderSide: BorderSide.none,
-        borderRadius: BorderRadius.circular(15),
-      ),
-      labelStyle: const TextStyle(
-        color: Color(0xFF3101B9),
-        fontWeight: FontWeight.normal,
-      ),
-      hintStyle: const TextStyle(
-        color: Color(0xFF3101B9),
-        fontWeight: FontWeight.normal,
-      ),
-    ),
-
-    // Texto
-    textTheme: const TextTheme(
-      bodyMedium: TextStyle(
-        color: Colors.white,
+    // TextButton
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        backgroundColor: Colors.white,
+        foregroundColor: _colorPrimary,
       ),
     ),
 
     // Dialog
-    dialogTheme: const DialogTheme(
+    dialogTheme: DialogTheme(
       backgroundColor: Colors.white,
       titleTextStyle: TextStyle(
-        color: Color(0xFF3101B9),
+        color: Colors.black,
         fontSize: 20,
         fontWeight: FontWeight.bold,
       ),
       contentTextStyle: TextStyle(
-        color: Color(0xFF3101B9),
+        color: Colors.black,
         fontSize: 16,
       ),
     ),

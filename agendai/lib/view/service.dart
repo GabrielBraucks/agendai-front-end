@@ -1,186 +1,288 @@
-import 'package:agendai/presenter/servico_presenter.dart';
+import 'package:agendai/presenter/home_presenter.dart';
+import 'package:agendai/view/service_register.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 class Service extends StatefulWidget {
   const Service({super.key});
 
   @override
-  State<Service> createState() => _TodoState();
+  State<Service> createState() => _ServiceState();
 }
 
-class _TodoState extends State<Service> {
-  final nameController = TextEditingController();
-  final durationController = TextEditingController();
-  final categoryController = TextEditingController();
-  final valueController = TextEditingController();
+class _ServiceState extends State<Service> {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    final presenter = Provider.of<HomePresenter>(context, listen: false);
+    Future.delayed(Duration.zero).then((value) {
+      presenter.getServicos();
+    });
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      appBar: AppBar(
-        centerTitle: false,
-        title: const Text('Novo Serviço'),
-      ),
-      body: Consumer<ServicePresenter>(
-        builder: (context, presenter, child) {
-          if (presenter.loadingService) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          return Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+      body: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 30),
+          child: Consumer<HomePresenter>(
+            builder: (context, presenter, child) {
+              if (presenter.loadingHome) {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
+              return Column(
                 children: [
-                  const Icon(
-                    Icons.design_services,
-                    size: 200,
-                    color: Colors.grey,
-                  ),
-                  const SizedBox(height: 24),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 500),
-                    child: Card(
-                      elevation: 6,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                  const Row(
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Listagem de serviços',
+                          style: TextStyle(
+                            fontSize: 40,
+                          ),
+                        ),
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                      Spacer(),
+                      Padding(
+                        padding: EdgeInsets.only(bottom: 10),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            const Text(
-                              'Preencha as informações do serviço',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 20),
-                            TextFormField(
-                              controller: nameController,
-                              decoration: const InputDecoration(
-                                labelText: 'Nome',
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: valueController,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                      decimal: true),
-                              inputFormatters: [
-                                FilteringTextInputFormatter.allow(
-                                    RegExp(r'^\d*\.?\d{0,2}')),
-                              ],
-                              decoration: const InputDecoration(
-                                labelText: 'Valor (em R\$)',
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: durationController,
-                              decoration: const InputDecoration(
-                                labelText: 'Duração',
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: categoryController,
-                              decoration: const InputDecoration(
-                                labelText: 'Categoria',
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                ElevatedButton.icon(
-                                  icon: const Icon(Icons.close,
-                                      color: Colors.red),
-                                  label: const Text(
-                                    'Cancelar',
-                                    style: TextStyle(color: Colors.black),
+                            SizedBox(
+                              width: 500,
+                              child: TextField(
+                                decoration: InputDecoration(
+                                  prefixIcon: Icon(
+                                    Icons.search,
+                                    color: Colors.black,
                                   ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.grey[300],
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 20, vertical: 12),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  onPressed: () {
-                                    Navigator.of(context).pop(false);
-                                  },
+                                  hintText: 'Busque palavras-chave',
                                 ),
-                                ElevatedButton.icon(
-                                  icon: const Icon(Icons.check),
-                                  label: const Text('Salvar'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: theme.primaryColor,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 20, vertical: 12),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  onPressed: () async {
-                                    final name = nameController.text;
-                                    final value = double.tryParse(
-                                            valueController.text
-                                                .replaceAll(',', '.')) ??
-                                        0.0;
-                                    final duration = durationController.text;
-                                    final category = categoryController.text;
-
-                                    if (name.isNotEmpty &&
-                                        duration.isNotEmpty &&
-                                        category.isNotEmpty) {
-                                      await context
-                                          .read<ServicePresenter>()
-                                          .createService(
-                                            name: name,
-                                            value: value.toInt(),
-                                            duration: duration,
-                                            category: category,
-                                          );
-
-                                      Navigator.pop(context, true);
-                                    } else {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                          content:
-                                              Text('Preencha todos os campos!'),
-                                        ),
-                                      );
-                                    }
-                                  },
-                                ),
-                              ],
+                              ),
                             ),
                           ],
                         ),
                       ),
-                    ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: presenter.servicos.isEmpty
+                        ? const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.search,
+                                  size: 50,
+                                  color: Colors.grey,
+                                ),
+                                SizedBox(height: 15),
+                                Text(
+                                  'Você não possui nenhum serviço listado',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : GridView.count(
+                            crossAxisCount:
+                                MediaQuery.of(context).size.width > 1000
+                                    ? 7
+                                    : MediaQuery.of(context).size.width > 600
+                                        ? 4
+                                        : 2,
+                            crossAxisSpacing: 10,
+                            mainAxisSpacing: 10,
+                            childAspectRatio: 1,
+                            children: List.generate(
+                              presenter.servicos.length,
+                              (index) {
+                                final servicos = presenter.servicos[index];
+                                final id = servicos.id;
+                                final nome = servicos.nome;
+                                final preco = servicos.preco;
+                                final categoria = servicos.categoria;
+                                final duracao = servicos.duracao;
+
+                                return Card(
+                                  color: const Color(0xFF6a00b0)
+                                      .withOpacity(0.8 + (id % 5) * 0.05),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(15),
+                                  ),
+                                  elevation: 5,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12.0),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          nome,
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 5),
+                                        Text(
+                                          categoria,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.white70,
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  'R\$ $preco',
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  duracao,
+                                                  style: const TextStyle(
+                                                    color: Colors.white70,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            IconButton(
+                                              icon: const Icon(
+                                                Icons.delete_outline_sharp,
+                                                color: Colors.white,
+                                              ),
+                                              tooltip: "Deletar",
+                                              // onPressed: () {
+                                              //   //presenter.deleteServicos(id);
+
+                                              // },
+                                              onPressed: () {
+                                                showDialog(
+                                                  context: context,
+                                                  builder:
+                                                      (BuildContext context) {
+                                                    return AlertDialog(
+                                                      title: const Text(
+                                                        'Confirmar exclusão',
+                                                      ),
+                                                      content: Text(
+                                                        'Tem certeza que deseja excluir o serviço "$nome"?',
+                                                      ),
+                                                      actions: <Widget>[
+                                                        TextButton(
+                                                          child: const Text(
+                                                            'Cancelar',
+                                                            style: TextStyle(
+                                                              color: Colors.red,
+                                                            ),
+                                                          ),
+                                                          onPressed: () {
+                                                            Navigator.of(
+                                                                    context)
+                                                                .pop();
+                                                          },
+                                                        ),
+                                                        ElevatedButton(
+                                                          onPressed: () {
+                                                            presenter
+                                                                .deleteServicos(
+                                                                    id);
+                                                            Navigator.of(
+                                                                    context)
+                                                                .pop();
+                                                          },
+                                                          child: const Text(
+                                                              'Excluir'),
+                                                        ),
+                                                      ],
+                                                    );
+                                                  },
+                                                );
+                                              },
+                                            ),
+                                          ],
+                                        )
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
                   ),
                 ],
-              ),
+              );
+            },
+          ),
+        ),
+      ),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 100,
+          vertical: 50,
+        ),
+        child: SizedBox(
+          width: 70,
+          height: 70,
+          child: FloatingActionButton(
+            backgroundColor: const Color(0xFF620096),
+            onPressed: () async {
+              await showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    content: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.of(context).size.height * 0.8,
+                        maxWidth: 500,
+                      ),
+                      child: const SingleChildScrollView(
+                        child: ServiceRegister(),
+                      ),
+                    ),
+                  );
+                },
+              );
+              // final result = await Navigator.pushNamed(context, '/service');
+              // if (result == true) {
+              context.read<HomePresenter>().getServicos();
+              //}
+            },
+            tooltip: 'Adicionar serviço',
+            child: const Icon(
+              Icons.add,
+              size: 40,
+              color: Colors.white,
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }
