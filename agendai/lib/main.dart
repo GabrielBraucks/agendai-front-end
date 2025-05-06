@@ -13,6 +13,7 @@ import 'package:agendai/view/login.dart';
 import 'package:agendai/view/register.dart';
 import 'package:agendai/view/scheduling.dart';
 import 'package:agendai/view/service.dart';
+import 'package:agendai/view/service_register.dart';
 import 'package:agendai/view/splash.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -52,13 +53,14 @@ class MyApp extends StatelessWidget {
       themeMode: ThemeMode.system,
       initialRoute: '/',
       routes: {
-        '/': (_) => Splash(),
+        '/': (_) => const Splash(),
         '/login': (context) => const Login(),
-        '/home': (context) => const Home(),
         '/register': (context) => const Register(),
+        '/home': (context) => const Home(),
         '/service': (context) => const Service(),
+        '/service-register': (context) => const ServiceRegister(),
         '/employees': (context) => const Employees(),
-        '/employee-form': (context) => const EmployeesRegister(),
+        '/employee-register': (context) => const EmployeesRegister(),
         '/scheduling': (context) => const Scheduling(),
       },
     );
