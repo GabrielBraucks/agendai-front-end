@@ -16,28 +16,32 @@ import 'package:agendai/view/service.dart';
 import 'package:agendai/view/service_register.dart';
 import 'package:agendai/view/splash.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 
 import 'theme.dart';
 
 void main() {
-  final api = AgendaiApi();
-  runApp(
-    MultiProvider(
-      // Fornece o AgendApi para todos os presenters
-      providers: [
-        ChangeNotifierProvider(create: (_) => LoginPresenter(api: api)),
-        ChangeNotifierProvider(create: (_) => HomePresenter(api: api)),
-        ChangeNotifierProvider(create: (_) => SplashPresenter(api: api)),
-        ChangeNotifierProvider(create: (_) => RegisterPresenter(api: api)),
-        ChangeNotifierProvider(create: (_) => ServicePresenter(api: api)),
-        ChangeNotifierProvider(create: (_) => EmployeesPresenter(api: api)),
-        ChangeNotifierProvider(
-            create: (_) => EmployeesRegisterPresenter(api: api)),
-      ],
-      child: const MyApp(),
-    ),
-  );
+  initializeDateFormatting('pt_BR', null).then((_) {
+    final api = AgendaiApi();
+    runApp(
+      MultiProvider(
+        // Fornece o AgendApi para todos os presenters
+        providers: [
+          ChangeNotifierProvider(create: (_) => LoginPresenter(api: api)),
+          ChangeNotifierProvider(create: (_) => HomePresenter(api: api)),
+          ChangeNotifierProvider(create: (_) => SplashPresenter(api: api)),
+          ChangeNotifierProvider(create: (_) => RegisterPresenter(api: api)),
+          ChangeNotifierProvider(create: (_) => ServicePresenter(api: api)),
+          ChangeNotifierProvider(create: (_) => EmployeesPresenter(api: api)),
+          ChangeNotifierProvider(
+              create: (_) => EmployeesRegisterPresenter(api: api)),
+        ],
+        child: const MyApp(),
+      ),
+    );
+  });
 }
 
 class MyApp extends StatelessWidget {
@@ -51,6 +55,16 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('pt', 'BR'),
+        Locale('en', 'US'),
+      ],
+      locale: const Locale('pt', 'BR'),
       initialRoute: '/',
       routes: {
         '/': (_) => const Splash(),

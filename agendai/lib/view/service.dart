@@ -1,4 +1,4 @@
-import 'package:agendai/presenter/home_presenter.dart';
+import 'package:agendai/presenter/servico_presenter.dart';
 import 'package:agendai/view/service_register.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -15,7 +15,7 @@ class _ServiceState extends State<Service> {
 
   @override
   void initState() {
-    final presenter = Provider.of<HomePresenter>(context, listen: false);
+    final presenter = Provider.of<ServicePresenter>(context, listen: false);
     Future.delayed(Duration.zero).then((value) {
       presenter.getServicos();
     });
@@ -34,9 +34,9 @@ class _ServiceState extends State<Service> {
       body: Center(
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 30),
-          child: Consumer<HomePresenter>(
+          child: Consumer<ServicePresenter>(
             builder: (context, presenter, child) {
-              if (presenter.loadingHome) {
+              if (presenter.loadingService) {
                 return const Center(
                   child: CircularProgressIndicator(),
                 );
@@ -272,7 +272,7 @@ class _ServiceState extends State<Service> {
               );
               // final result = await Navigator.pushNamed(context, '/service');
               // if (result == true) {
-              context.read<HomePresenter>().getServicos();
+              context.read<ServicePresenter>().getServicos();
               //}
             },
             tooltip: 'Adicionar serviço',

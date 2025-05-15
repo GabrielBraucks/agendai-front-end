@@ -124,42 +124,44 @@ class _EmployeesState extends State<Employees> {
                                 style: TextStyle(color: Colors.white70),
                               ),
                             )
-                          : Padding(
-                              padding: const EdgeInsets.all(20.0),
-                              child: Card(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                ),
-                                color: const Color(0xFF620096),
-                                elevation: 5,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(30.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: [
-                                      const Center(
-                                        child: Icon(
-                                          Icons.account_circle_rounded,
-                                          size: 200,
-                                          color: Colors.white,
+                          : SingleChildScrollView(
+                              child: Padding(
+                                padding: const EdgeInsets.all(20.0),
+                                child: Card(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(15),
+                                  ),
+                                  color: const Color(0xFF620096),
+                                  elevation: 5,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(30.0),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        const Center(
+                                          child: Icon(
+                                            Icons.account_circle_rounded,
+                                            size: 200,
+                                            color: Colors.white,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 20),
+                                        const SizedBox(height: 20),
 
-                                      // Informações do funcionário
-                                      _infoItem('Nome', selected.nome),
-                                      _infoItem('CPF', selected.cpf,
-                                          isAlternate: true),
-                                      _infoItem('Email', selected.email),
-                                      _infoItem('Telefone', selected.telefone,
-                                          isAlternate: true),
-                                      _infoItem(
-                                          'Nascimento', selected.dataNasc),
-                                      _infoItem('Cargo', selected.cargo,
-                                          isAlternate: true),
-                                      _infoItem('Empresa', selected.empresa),
-                                    ],
+                                        // Informações do funcionário
+                                        _infoItem('Nome', selected.nome),
+                                        _infoItem('CPF', selected.cpf,
+                                            isAlternate: true),
+                                        _infoItem('Email', selected.email),
+                                        _infoItem('Telefone', selected.telefone,
+                                            isAlternate: true),
+                                        _infoItem(
+                                            'Nascimento', selected.dataNasc),
+                                        _infoItem('Cargo', selected.cargo,
+                                            isAlternate: true),
+                                        _infoItem('Empresa', selected.empresa),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),

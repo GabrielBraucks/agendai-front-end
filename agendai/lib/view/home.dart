@@ -18,10 +18,10 @@ class _HomeState extends State<Home> {
 
   @override
   void initState() {
-    final presenter = Provider.of<HomePresenter>(context, listen: false);
-    Future.delayed(Duration.zero).then((value) {
-      presenter.getServicos();
-    });
+    //final presenter = Provider.of<HomePresenter>(context, listen: false);
+    // Future.delayed(Duration.zero).then((value) {
+    //   presenter.getServicos();
+    // });
     super.initState();
   }
 
@@ -52,75 +52,82 @@ class _HomeState extends State<Home> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: Builder(
-          builder: (context) => Padding(
-            padding: const EdgeInsets.only(),
-            child: IconButton(
-              icon: const Icon(
-                Icons.person,
-                size: 40,
-              ),
-              tooltip: "Menu",
-              onPressed: () {
-                Scaffold.of(context).openDrawer();
-              },
-            ),
-          ),
+        leading: IconButton(
+          icon: const Icon(Icons.person, size: 40),
+          tooltip: "Menu",
+          onPressed: () {
+            Scaffold.of(context).openDrawer();
+          },
         ),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        title: const Row(
           children: [
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  selectedIndex = 0;
-                });
-              },
-              child: Text(
-                'Agendamentos',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: selectedIndex == 0 ? Colors.purple : Colors.black,
-                  fontWeight:
-                      selectedIndex == 0 ? FontWeight.bold : FontWeight.normal,
-                ),
+            Text(
+              "Nome da empresa",
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
               ),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  selectedIndex = 1;
-                });
-              },
-              child: Text(
-                'Serviços',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: selectedIndex == 1 ? Colors.purple : Colors.black,
-                  fontWeight:
-                      selectedIndex == 1 ? FontWeight.bold : FontWeight.normal,
-                ),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  selectedIndex = 2;
-                });
-              },
-              child: Text(
-                'Funcionários',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: selectedIndex == 2 ? Colors.purple : Colors.black,
-                  fontWeight:
-                      selectedIndex == 2 ? FontWeight.bold : FontWeight.normal,
-                ),
-              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
         actions: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    selectedIndex = 0;
+                  });
+                },
+                child: Text(
+                  'Agendamentos',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: selectedIndex == 0 ? Colors.purple : Colors.black,
+                    fontWeight: selectedIndex == 0
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    selectedIndex = 1;
+                  });
+                },
+                child: Text(
+                  'Serviços',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: selectedIndex == 1 ? Colors.purple : Colors.black,
+                    fontWeight: selectedIndex == 1
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    selectedIndex = 2;
+                  });
+                },
+                child: Text(
+                  'Funcionários',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: selectedIndex == 2 ? Colors.purple : Colors.black,
+                    fontWeight: selectedIndex == 2
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                  ),
+                ),
+              ),
+            ],
+          ),
           Padding(
             padding: const EdgeInsets.only(
               right: 20,
