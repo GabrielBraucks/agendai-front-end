@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:agendai/entity/employee.dart';
+import 'package:agendai/entity/scheduling.dart';
 import 'package:agendai/entity/service.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -150,7 +151,7 @@ class AgendaiApi {
           jsonResponse.map((servico) => Servico.fromJson(servico)).toList();
       return responseData;
     } else {
-      throw Exception('Falha ao listar TODOs: ${response.body}');
+      throw Exception('Falha ao listar Servicos: ${response.body}');
     }
   }
 
@@ -255,6 +256,30 @@ class AgendaiApi {
     }
   }
 
+  // Deletar funcionario
+  Future<void> deleteEmployee({
+    required int id,
+  }) async {
+    if (_jwtToken == null) {
+      throw Exception('Usuário não autenticado.');
+    }
+
+    final url = Uri.parse('$baseUrl/funcionarios/$id');
+    final response = await http.delete(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $_jwtToken',
+      },
+    );
+
+    if (response.statusCode == 201) {
+      print('Funcionario deletado com sucesso!');
+    } else {
+      throw Exception('Falha ao deletar funcionario: ${response.body}');
+    }
+  }
+
   // Listar funcionario
   Future<List<Employee>> getEmployees() async {
     _jwtToken = await getToken();
@@ -306,6 +331,75 @@ class AgendaiApi {
       return funcionario;
     } else {
       throw Exception('Falha ao listar detalhe: ${response.body}');
+    }
+  }
+
+  Future<void> registerScheduleWithNewClient({
+    required int idService,
+    required String date, // "2025-10-10"
+    required String time, // "14:30:00"
+    required String email,
+    required String cpf,
+    required String name,
+    required String celPhone,
+  }) async {
+    if (_jwtToken == null) {
+      throw Exception('Usuário não autenticado.');
+    }
+
+    final url = Uri.parse('$baseUrl/agendamentos/registerCliente');
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $_jwtToken',
+      },
+      body: jsonEncode(
+        {
+          "idServico": idService,
+          "data": date,
+          "horario": time,
+          "cliente": {
+            "email": email,
+            "cpf": cpf,
+            "nome": name,
+            "telefone": celPhone,
+          },
+        },
+      ),
+    );
+
+    if (response.statusCode == 201) {
+      print('Agendamento criado com sucesso!');
+    } else {
+      throw Exception('Falha ao criar agendamento: ${response.body}');
+    }
+  }
+
+  Future<List<Scheduling>> getScheduling() async {
+    _jwtToken = await getToken();
+    _idEnterprise = await getId();
+    if (_jwtToken == null) {
+      throw Exception('Usuário não autenticado.');
+    }
+    final url =
+        Uri.parse('$baseUrl/agendamentos/listarPelaEmpresa/$_idEnterprise');
+
+    final response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $_jwtToken',
+      },
+    );
+    if (response.statusCode == 201) {
+      final List<dynamic> jsonResponse = jsonDecode(response.body);
+      final responseData = jsonResponse
+          .map((agendamento) => Scheduling.fromJson(agendamento))
+          .toList();
+      return responseData;
+    } else {
+      throw Exception('Falha ao listar agendamentos: ${response.body}');
     }
   }
 }

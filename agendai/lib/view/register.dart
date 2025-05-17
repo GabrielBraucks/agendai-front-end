@@ -30,11 +30,11 @@ class _RegisterState extends State<Register> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
+                  boxShadow: const [
                     BoxShadow(
                       color: Colors.black12,
                       blurRadius: 12,
-                      offset: const Offset(0, 8),
+                      offset: Offset(0, 8),
                     )
                   ],
                 ),
@@ -42,7 +42,7 @@ class _RegisterState extends State<Register> {
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.account_balance_rounded,
                       size: 35,
                     ),
@@ -56,7 +56,7 @@ class _RegisterState extends State<Register> {
                     const SizedBox(height: 30),
                     TextField(
                       controller: employerIdentificationController,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.black,
                       ),
                       decoration: const InputDecoration(
@@ -78,7 +78,7 @@ class _RegisterState extends State<Register> {
                     const SizedBox(height: 15),
                     TextField(
                       controller: employernameController,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.black,
                       ),
                       decoration: const InputDecoration(
@@ -100,7 +100,7 @@ class _RegisterState extends State<Register> {
                     const SizedBox(height: 15),
                     TextField(
                       controller: emailController,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.black,
                       ),
                       decoration: const InputDecoration(
@@ -122,7 +122,7 @@ class _RegisterState extends State<Register> {
                     const SizedBox(height: 15),
                     TextField(
                       controller: passwordController,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.black,
                       ),
                       decoration: const InputDecoration(
@@ -144,7 +144,7 @@ class _RegisterState extends State<Register> {
                     const SizedBox(height: 15),
                     TextField(
                       controller: confirmPasswordController,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.black,
                       ),
                       decoration: const InputDecoration(
@@ -168,7 +168,8 @@ class _RegisterState extends State<Register> {
                       alignment: Alignment.topRight,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF620096), // cor do botão
+                          backgroundColor:
+                              const Color(0xFF620096), // cor do botão
                           foregroundColor: Colors.white, // cor do texto/ícone
                         ),
                         onPressed: () {

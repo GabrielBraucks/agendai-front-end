@@ -18,6 +18,30 @@ class _EmployeesRegistertate extends State<EmployeesRegister> {
   final passwordController = TextEditingController();
   final birthdayController = TextEditingController();
 
+  // Lista de cargos predefinidos
+  final List<String> jobTitles = [
+    'Cabelereiro(a)',
+    'Manicure',
+    'Pedicure',
+    'Esteticista',
+    'Maquiador(a)',
+    'Barbeiro',
+    'Auxiliar',
+    'Outro'
+  ];
+
+  String selectedJobTitle = 'Cabelereiro(a)'; // Valor padrão
+
+  // Lista de categorias predefinidas
+  final List<String> categories = [
+    'Funcionário',
+    'Estagiário',
+    'Autônomo',
+    'Terceirizado'
+  ];
+
+  String selectedCategory = 'Funcionário'; // Valor padrão
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -33,11 +57,12 @@ class _EmployeesRegistertate extends State<EmployeesRegister> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const SizedBox(height: 24),
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 500),
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -70,11 +95,46 @@ class _EmployeesRegistertate extends State<EmployeesRegister> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        TextFormField(
-                          controller: jobTitleController,
+                        // Dropdown para seleção de cargo
+                        DropdownButtonFormField<String>(
+                          value: selectedJobTitle,
                           decoration: const InputDecoration(
-                            labelText: 'Trabalho',
+                            labelText: 'Função Principal',
+                            border: OutlineInputBorder(),
                           ),
+                          items: jobTitles.map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                          onChanged: (newValue) {
+                            setState(() {
+                              selectedJobTitle = newValue!;
+                              jobTitleController.text = newValue;
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        // Dropdown para seleção de categoria
+                        DropdownButtonFormField<String>(
+                          value: selectedCategory,
+                          decoration: const InputDecoration(
+                            labelText: 'Categoria',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: categories.map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                          onChanged: (newValue) {
+                            setState(() {
+                              selectedCategory = newValue!;
+                              passwordController.text = newValue;
+                            });
+                          },
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
@@ -114,14 +174,7 @@ class _EmployeesRegistertate extends State<EmployeesRegister> {
                             }
                           },
                         ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: passwordController,
-                          decoration: const InputDecoration(
-                            labelText: 'Categoria',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
+
                         const SizedBox(height: 24),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -147,10 +200,12 @@ class _EmployeesRegistertate extends State<EmployeesRegister> {
                               onPressed: () async {
                                 final name = nameController.text;
                                 final cpf = cpfController.text;
-                                final jobTitle = jobTitleController.text;
+                                final jobTitle =
+                                    selectedJobTitle; // Usar o valor selecionado diretamente
                                 final email = emailController.text;
                                 final celPhone = celPhoneController.text;
-                                final password = passwordController.text;
+                                final password =
+                                    selectedCategory; // Usar o valor da categoria selecionada
                                 final birthday = birthdayController.text;
 
                                 if (name.isNotEmpty &&

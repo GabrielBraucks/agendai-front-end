@@ -10,6 +10,7 @@ class EmployeesPresenter extends ChangeNotifier {
 
   EmployeesPresenter({required this.api});
 
+  // Listar funcionários
   Future<List<Employee>> getEmployees() async {
     loadingPage = true;
     notifyListeners();
@@ -20,6 +21,7 @@ class EmployeesPresenter extends ChangeNotifier {
     return todos;
   }
 
+  // Atualizar funcionário
   Future updateEmployee({
     required int id,
     required String nome,
@@ -31,8 +33,6 @@ class EmployeesPresenter extends ChangeNotifier {
   }) async {
     loadingPage = true;
     notifyListeners();
-
-    // Atualizando as informações do funcionário
     await api.updateEmployee(
       id: id,
       name: nome,
@@ -42,25 +42,33 @@ class EmployeesPresenter extends ChangeNotifier {
       celPhone: telefone,
       birthday: dataNasc,
     );
-
-    // Recarregando a lista de funcionários
     await getEmployees();
-
     loadingPage = false;
     notifyListeners();
   }
 
-  Future<void> logout() async {
-    await api.deleteToken();
-  }
-
-  Future deleteServicos(int id) async {
+  // Deletar funcionário
+  Future deleteEmployee(int id) async {
     loadingPage = true;
     notifyListeners();
-    await api.deleteService(id);
+    await api.deleteEmployee(id: id);
     await getEmployees();
+    loadingPage = false;
+    notifyListeners();
   }
 
+  // Future<void> logout() async {
+  //   await api.deleteToken();
+  // }
+
+  // Future deleteServicos(int id) async {
+  //   loadingPage = true;
+  //   notifyListeners();
+  //   await api.deleteService(id);
+  //   await getEmployees();
+  // }
+
+  // Pegar funcionário por id
   Future<Employee> idEmployee(int id) async {
     loadingPage = true;
     notifyListeners();

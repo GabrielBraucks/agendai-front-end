@@ -4,6 +4,7 @@ import 'package:agendai/presenter/employees_register_presenter.dart';
 import 'package:agendai/presenter/home_presenter.dart';
 import 'package:agendai/presenter/login_presenter.dart';
 import 'package:agendai/presenter/register_presenter.dart';
+import 'package:agendai/presenter/scheduling_presenter.dart';
 import 'package:agendai/presenter/servico_presenter.dart';
 import 'package:agendai/presenter/splash_presenter.dart';
 import 'package:agendai/view/employees.dart';
@@ -37,6 +38,7 @@ void main() {
           ChangeNotifierProvider(create: (_) => EmployeesPresenter(api: api)),
           ChangeNotifierProvider(
               create: (_) => EmployeesRegisterPresenter(api: api)),
+          ChangeNotifierProvider(create: (_) => SchedulingPresenter(api: api)),
         ],
         child: const MyApp(),
       ),

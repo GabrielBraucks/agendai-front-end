@@ -42,18 +42,18 @@ class _LoginState extends State<Login> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
+                    boxShadow: const [
                       BoxShadow(
                         color: Colors.black12,
                         blurRadius: 12,
-                        offset: const Offset(0, 8),
+                        offset: Offset(0, 8),
                       )
                     ],
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Column(
+                      const Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -61,14 +61,14 @@ class _LoginState extends State<Login> {
                             Icons.event,
                             size: 35,
                           ),
-                          const SizedBox(height: 15),
-                          const Text(
+                          SizedBox(height: 15),
+                          Text(
                             'Bem-vindo ao Agendai',
                             style: TextStyle(
                               fontSize: 30,
                             ),
                           ),
-                          const Text(
+                          Text(
                             'Que bom que está aqui 😊',
                             style: TextStyle(
                               fontSize: 15,
@@ -85,10 +85,11 @@ class _LoginState extends State<Login> {
                             Align(
                               alignment: Alignment.centerRight,
                               child: ConstrainedBox(
-                                constraints: BoxConstraints(maxWidth: 400),
+                                constraints:
+                                    const BoxConstraints(maxWidth: 400),
                                 child: TextField(
                                   controller: emailController,
-                                  decoration: InputDecoration(
+                                  decoration: const InputDecoration(
                                     labelText: 'E-mail',
                                   ),
                                 ),
@@ -98,7 +99,8 @@ class _LoginState extends State<Login> {
                             Align(
                               alignment: Alignment.centerRight,
                               child: ConstrainedBox(
-                                constraints: BoxConstraints(maxWidth: 400),
+                                constraints:
+                                    const BoxConstraints(maxWidth: 400),
                                 child: TextField(
                                   obscureText: isObscured,
                                   controller: passwordController,
@@ -120,9 +122,22 @@ class _LoginState extends State<Login> {
                             ),
                             if (presenter.errorMessage != null) ...[
                               const SizedBox(height: 10),
-                              Text(
-                                presenter.errorMessage!,
-                                style: TextStyle(color: Colors.red),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  const Icon(
+                                    Icons.error_outline,
+                                    color: Colors.red,
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    presenter.errorMessage!,
+                                    textAlign: TextAlign.start,
+                                    style:
+                                        TextStyle(color: Colors.red.shade800),
+                                  ),
+                                ],
                               ),
                             ],
                             const SizedBox(height: 30),

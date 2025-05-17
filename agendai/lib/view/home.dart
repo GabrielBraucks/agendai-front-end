@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class Home extends StatefulWidget {
-  const Home({super.key});
+  const Home({
+    super.key,
+  });
 
   @override
   State<Home> createState() => _HomeState();
@@ -15,6 +17,11 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   late AnimationController _controller;
   int selectedIndex = 0; // Começa com Serviços selecionado
+
+  String capitalizeFirstLetter(String text) {
+    if (text.isEmpty) return text;
+    return text[0].toUpperCase() + text.substring(1).toLowerCase();
+  }
 
   @override
   void initState() {
@@ -62,7 +69,7 @@ class _HomeState extends State<Home> {
         title: const Row(
           children: [
             Text(
-              "Nome da empresa",
+              "AgendAi",
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,

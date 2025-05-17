@@ -10,7 +10,7 @@ class AppTheme {
     fontFamily: 'Montserrat',
 
     // AppBar
-    appBarTheme: AppBarTheme(
+    appBarTheme: const AppBarTheme(
       backgroundColor: Color(0xFFf2f6fc),
       iconTheme: IconThemeData(
         color: Colors.black,
@@ -23,7 +23,7 @@ class AppTheme {
     ),
 
     // Background
-    scaffoldBackgroundColor: Color(0xFFf2f6fc),
+    scaffoldBackgroundColor: const Color(0xFFf2f6fc),
     textTheme: const TextTheme(
       bodyMedium: TextStyle(
         color: Colors.black,
@@ -44,7 +44,7 @@ class AppTheme {
 
     // ProgressIndicator
     progressIndicatorTheme: const ProgressIndicatorThemeData(
-      color: Colors.white,
+      color: Colors.black,
     ),
 
     // Definir um esquema de cores para o app
@@ -54,14 +54,14 @@ class AppTheme {
     // ),
 
     // TextField
-    inputDecorationTheme: InputDecorationTheme(
-      contentPadding: const EdgeInsets.symmetric(
+    inputDecorationTheme: const InputDecorationTheme(
+      contentPadding: EdgeInsets.symmetric(
         vertical: 10,
         horizontal: 15,
       ),
       filled: true,
-      fillColor: const Color(0xFFFFFFFF),
-      labelStyle: const TextStyle(
+      fillColor: Color(0xFFFFFFFF),
+      labelStyle: TextStyle(
         color: Colors.black,
         fontSize: 16,
       ),
@@ -120,7 +120,7 @@ class AppTheme {
     ),
 
     // Dialog
-    dialogTheme: DialogTheme(
+    dialogTheme: const DialogTheme(
       backgroundColor: Colors.white,
       titleTextStyle: TextStyle(
         color: Colors.black,
