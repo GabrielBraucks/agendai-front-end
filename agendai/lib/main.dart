@@ -1,4 +1,5 @@
 import 'package:agendai/model/agendai_api.dart';
+import 'package:agendai/presenter/customer_presenter.dart';
 import 'package:agendai/presenter/employees_presenter.dart';
 import 'package:agendai/presenter/employees_register_presenter.dart';
 import 'package:agendai/presenter/home_presenter.dart';
@@ -7,6 +8,7 @@ import 'package:agendai/presenter/register_presenter.dart';
 import 'package:agendai/presenter/scheduling_presenter.dart';
 import 'package:agendai/presenter/servico_presenter.dart';
 import 'package:agendai/presenter/splash_presenter.dart';
+import 'package:agendai/view/customers.dart';
 import 'package:agendai/view/employees.dart';
 import 'package:agendai/view/employees_register.dart';
 import 'package:agendai/view/home.dart';
@@ -36,6 +38,7 @@ void main() {
           ChangeNotifierProvider(create: (_) => RegisterPresenter(api: api)),
           ChangeNotifierProvider(create: (_) => ServicePresenter(api: api)),
           ChangeNotifierProvider(create: (_) => EmployeesPresenter(api: api)),
+          ChangeNotifierProvider(create: (_) => CustomersPresenter(api: api)),
           ChangeNotifierProvider(
               create: (_) => EmployeesRegisterPresenter(api: api)),
           ChangeNotifierProvider(create: (_) => SchedulingPresenter(api: api)),
@@ -56,7 +59,7 @@ class MyApp extends StatelessWidget {
       title: 'Todo App',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.light,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -74,6 +77,7 @@ class MyApp extends StatelessWidget {
         '/register': (context) => const Register(),
         '/home': (context) => const Home(),
         '/service': (context) => const Service(),
+        '/customers': (context) => const Customers(),
         '/service-register': (context) => const ServiceRegister(),
         '/employees': (context) => const Employees(),
         '/employee-register': (context) => const EmployeesRegister(),

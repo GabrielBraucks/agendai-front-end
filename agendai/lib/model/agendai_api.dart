@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:agendai/entity/customer.dart';
 import 'package:agendai/entity/employee.dart';
 import 'package:agendai/entity/scheduling.dart';
 import 'package:agendai/entity/service.dart';
@@ -15,7 +16,9 @@ class AgendaiApi {
   // Getter para o token
   String? get jwtToken => _jwtToken;
   int? get idEnterprise => _idEnterprise;
-
+  AgendaiApi() {
+    _loadTokenAndId();
+  }
   // Recuperar o token do dispositivo
   Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -42,6 +45,22 @@ class AgendaiApi {
     _jwtToken = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
+  }
+
+  Future<void> _loadTokenAndId() async {
+    _jwtToken = await getToken();
+    _idEnterprise = await getId();
+  }
+
+  Future<Map<String, String>> _getHeaders() async {
+    if (_jwtToken == null) await _loadTokenAndId();
+    if (_jwtToken == null) {
+      throw Exception('Usuário não autenticado. Token JWT não encontrado.');
+    }
+    return {
+      'Content-Type': 'application/json; charset=UTF-8',
+      'Authorization': 'Bearer $_jwtToken',
+    };
   }
 
   // Login do Usuário
@@ -400,6 +419,154 @@ class AgendaiApi {
       return responseData;
     } else {
       throw Exception('Falha ao listar agendamentos: ${response.body}');
+    }
+  }
+
+  Future<List<Customer>> getCustomers() async {
+    _jwtToken = await getToken();
+    _idEnterprise = await getId();
+    if (_jwtToken == null) {
+      throw Exception('Usuário não autenticado.');
+    }
+    final url = Uri.parse('$baseUrl/cliente_interno');
+
+    final response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $_jwtToken',
+      },
+    );
+    if (response.statusCode == 201) {
+      final List<dynamic> jsonResponse = jsonDecode(response.body);
+      final responseData =
+          jsonResponse.map((c) => Customer.fromJson(c)).toList();
+      return responseData;
+    } else {
+      throw Exception('Falha ao listar Clientes: ${response.body}');
+    }
+  }
+
+  /// Rota: POST /cliente_interno/register
+  Future<bool> createInternalCustomer({
+    required String nome,
+    required String cpf,
+    required String email,
+    required String telefone,
+  }) async {
+    final headers = await _getHeaders();
+    final url = Uri.parse('$baseUrl/cliente_interno/register');
+    final response = await http.post(
+      url,
+      headers: headers,
+      body: jsonEncode({
+        'nome': nome,
+        'cpf': cpf,
+        'email': email,
+        'telefone': telefone,
+      }),
+    );
+
+    if (response.statusCode == 201) {
+      print('Cliente interno criado com sucesso!');
+      return true;
+    } else {
+      print(
+          'Falha ao criar cliente interno: ${response.statusCode} ${response.body}');
+      throw Exception('Falha ao criar cliente interno: ${response.body}');
+    }
+  }
+
+  /// Rota: GET /cliente_interno/
+  /// Updates the existing getCustomers to match the new routes for "cliente_interno"
+  Future<List<Customer>> getInternalCustomers() async {
+    final headers = await _getHeaders();
+    // Note the trailing slash to match `routes.get('/', ...)` in Express
+    final url = Uri.parse('$baseUrl/cliente_interno/');
+
+    final response = await http.get(url, headers: headers);
+
+    if (response.statusCode == 200) {
+      // Backend returns 200 for getAllClienteInterno
+      final List<dynamic> jsonResponse =
+          jsonDecode(utf8.decode(response.bodyBytes));
+      return jsonResponse.map((data) => Customer.fromJson(data)).toList();
+    } else {
+      print(
+          'Falha ao listar clientes internos: ${response.statusCode} ${response.body}');
+      throw Exception('Falha ao listar clientes internos: ${response.body}');
+    }
+  }
+
+  /// Rota: GET /cliente_interno/:id
+  Future<Customer?> getOneInternalCustomer(int id) async {
+    final headers = await _getHeaders();
+    final url = Uri.parse('$baseUrl/cliente_interno/$id');
+    final response = await http.get(url, headers: headers);
+
+    if (response.statusCode == 200) {
+      final dynamic jsonResponse = jsonDecode(utf8.decode(response.bodyBytes));
+      if (jsonResponse != null) {
+        return Customer.fromJson(jsonResponse);
+      }
+      return null; // Should not happen if API guarantees a customer or error
+    } else if (response.statusCode == 404) {
+      // Or whatever your API returns for not found
+      print('Cliente interno não encontrado: $id');
+      return null;
+    } else {
+      print(
+          'Falha ao buscar cliente interno: ${response.statusCode} ${response.body}');
+      throw Exception('Falha ao buscar cliente interno: ${response.body}');
+    }
+  }
+
+  /// Rota: PUT /cliente_interno/:id
+  Future<bool> updateInternalCustomer(
+    int id, {
+    required String nome,
+    required String cpf,
+    required String email,
+    required String telefone,
+  }) async {
+    final headers = await _getHeaders();
+    final url = Uri.parse('$baseUrl/cliente_interno/$id');
+    final response = await http.put(
+      url,
+      headers: headers,
+      body: jsonEncode({
+        'nome': nome,
+        'cpf': cpf,
+        'email': email,
+        'telefone': telefone,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      // Backend returns 200 for update
+      print('Cliente interno atualizado com sucesso!');
+      return true;
+    } else {
+      print(
+          'Falha ao atualizar cliente interno: ${response.statusCode} ${response.body}');
+      throw Exception('Falha ao atualizar cliente interno: ${response.body}');
+    }
+  }
+
+  /// Rota: DELETE /cliente_interno/:id
+  Future<bool> deleteInternalCustomer(int id) async {
+    final headers = await _getHeaders();
+    final url = Uri.parse('$baseUrl/cliente_interno/$id');
+    final response = await http.delete(url, headers: headers);
+
+    if (response.statusCode == 200) {
+      // Backend returns 200 for delete
+      print('Cliente interno deletado com sucesso!');
+      return true;
+    } else {
+      print(
+          'Falha ao deletar cliente interno: ${response.statusCode} ${response.body}');
+      throw Exception('Falha ao deletar cliente interno: ${response.body}');
     }
   }
 }
