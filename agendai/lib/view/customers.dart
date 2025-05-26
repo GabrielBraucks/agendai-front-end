@@ -6,9 +6,6 @@ import 'package:agendai/widgets/sidebar.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-// Assuming Customer entity is defined in customer.dart and imported by agendai_api.dart or directly
-// If not, ensure you have: import 'package:agendai/entity/customer.dart';
-
 class Customers extends StatefulWidget {
   const Customers({super.key});
 
@@ -24,8 +21,7 @@ class _CustomersState extends State<Customers> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final presenter = Provider.of<CustomersPresenter>(context, listen: false);
-      // Check if customers are already loaded to avoid redundant calls if screen is revisited
-      if (presenter.internalCustomers.isEmpty) {
+      if (presenter.internalCustomers.isEmpty && !presenter.isLoading) {
         presenter.fetchInternalCustomers();
       }
     });
@@ -36,29 +32,56 @@ class _CustomersState extends State<Customers> {
     final cpfController = TextEditingController();
     final emailController = TextEditingController();
     final phoneController = TextEditingController();
-    // It's good practice to get the presenter instance inside the builder or method
-    // if context might change, but for a dialog triggered from the current screen, this is okay.
-    // However, to be safer with async gaps, it's better to pass it or get it fresh.
-    // final presenter = Provider.of<CustomersPresenter>(context, listen: false); // Already have it
+    final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
-      builder: (BuildContext dialogContext) { // Use dialogContext for clarity
-        // Get presenter here to ensure it's from the correct context if dialog rebuilds
+      barrierDismissible: false, // User must tap button!
+      builder: (BuildContext dialogContext) {
         final presenter = Provider.of<CustomersPresenter>(dialogContext, listen: false);
         return AlertDialog(
           title: const Text('Adicionar Novo Cliente'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
           content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Nome')),
-                TextField(controller: cpfController, decoration: const InputDecoration(labelText: 'CPF')),
-                TextField(controller: emailController, decoration: const InputDecoration(labelText: 'Email')),
-                TextField(controller: phoneController, decoration: const InputDecoration(labelText: 'Telefone')),
-              ],
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  TextFormField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: 'Nome', border: OutlineInputBorder()),
+                    validator: (value) => value == null || value.isEmpty ? 'Nome é obrigatório' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: cpfController,
+                    decoration: const InputDecoration(labelText: 'CPF', border: OutlineInputBorder()),
+                     validator: (value) => value == null || value.isEmpty ? 'CPF é obrigatório' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: emailController,
+                    decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return 'Email é obrigatório';
+                      if (!value.contains('@')) return 'Email inválido';
+                      return null;
+                    }
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: phoneController,
+                    decoration: const InputDecoration(labelText: 'Telefone', border: OutlineInputBorder()),
+                    keyboardType: TextInputType.phone,
+                    validator: (value) => value == null || value.isEmpty ? 'Telefone é obrigatório' : null,
+                  ),
+                ],
+              ),
             ),
           ),
+          actionsAlignment: MainAxisAlignment.spaceBetween,
           actions: <Widget>[
             TextButton(
               child: const Text('Cancelar'),
@@ -66,13 +89,15 @@ class _CustomersState extends State<Customers> {
                 Navigator.of(dialogContext).pop();
               },
             ),
-            ElevatedButton(
-              child: const Text('Adicionar'),
-              onPressed: () async { // Make async for API call
-                if (nameController.text.isNotEmpty &&
-                    cpfController.text.isNotEmpty &&
-                    emailController.text.isNotEmpty &&
-                    phoneController.text.isNotEmpty) {
+            ElevatedButton.icon(
+              icon: const Icon(Icons.add_circle_outline),
+              label: const Text('Adicionar'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(dialogContext).primaryColor,
+                foregroundColor: Colors.white
+              ),
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
                   try {
                     await presenter.createInternalCustomer(
                       nome: nameController.text,
@@ -81,20 +106,146 @@ class _CustomersState extends State<Customers> {
                       telefone: phoneController.text,
                     );
                     Navigator.of(dialogContext).pop();
-                    // Optionally, show a success message
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Cliente adicionado com sucesso!'), backgroundColor: Colors.green,)
+                      const SnackBar(content: Text('Cliente adicionado com sucesso!'), backgroundColor: Colors.green)
                     );
                   } catch (e) {
-                     ScaffoldMessenger.of(dialogContext).showSnackBar( // Use dialogContext for SnackBar if dialog is still visible
-                      SnackBar(content: Text('Falha ao adicionar cliente: $e'), backgroundColor: Colors.red,)
+                     ScaffoldMessenger.of(context).showSnackBar( 
+                      SnackBar(content: Text('Falha ao adicionar cliente: ${e.toString()}'), backgroundColor: Colors.red)
                     );
                   }
-                } else {
-                   ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    const SnackBar(content: Text('Por favor, preencha todos os campos.'), backgroundColor: Colors.orange,)
-                  );
                 }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showEditCustomerDialog(Customer customerToEdit, int originalIndex) {
+    final nameController = TextEditingController(text: customerToEdit.nome);
+    final cpfController = TextEditingController(text: customerToEdit.cpf);
+    final emailController = TextEditingController(text: customerToEdit.email);
+    final phoneController = TextEditingController(text: customerToEdit.telefone);
+    final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        final presenter = Provider.of<CustomersPresenter>(dialogContext, listen: false);
+        return AlertDialog(
+          title: Text('Editar Cliente: ${customerToEdit.nome}'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  TextFormField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: 'Nome', border: OutlineInputBorder()),
+                    validator: (value) => value == null || value.isEmpty ? 'Nome é obrigatório' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: cpfController,
+                    decoration: const InputDecoration(labelText: 'CPF', border: OutlineInputBorder()),
+                    validator: (value) => value == null || value.isEmpty ? 'CPF é obrigatório' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: emailController,
+                    decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
+                    keyboardType: TextInputType.emailAddress,
+                     validator: (value) {
+                      if (value == null || value.isEmpty) return 'Email é obrigatório';
+                      if (!value.contains('@')) return 'Email inválido';
+                      return null;
+                    }
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: phoneController,
+                    decoration: const InputDecoration(labelText: 'Telefone', border: OutlineInputBorder()),
+                    keyboardType: TextInputType.phone,
+                    validator: (value) => value == null || value.isEmpty ? 'Telefone é obrigatório' : null,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actionsAlignment: MainAxisAlignment.spaceBetween,
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+            ),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.save_alt_outlined),
+              label: const Text('Salvar Alterações'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(dialogContext).primaryColor,
+                foregroundColor: Colors.white
+              ),
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  try {
+                    // Use the updateInternalCustomer method from the presenter
+                    await presenter.updateInternalCustomer(
+                      customerToEdit.id, // Pass the customer's ID
+                      nome: nameController.text,
+                      cpf: cpfController.text,
+                      email: emailController.text,
+                      telefone: phoneController.text,
+                    );
+                    Navigator.of(dialogContext).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Cliente atualizado com sucesso!'), backgroundColor: Colors.green)
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Falha ao atualizar cliente: ${e.toString()}'), backgroundColor: Colors.red)
+                    );
+                  }
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+  void _confirmDeleteDialog(BuildContext context, VoidCallback onDeleteConfirmed, String itemName, {bool multiple = false}) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Text(multiple ? 'Confirmar Exclusão Múltipla' : 'Confirmar Exclusão'),
+          content: Text(multiple 
+            ? 'Tem certeza que deseja excluir os ${itemName} cliente(s) selecionado(s)?' 
+            : 'Tem certeza que deseja excluir o cliente "$itemName"?'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+          actionsAlignment: MainAxisAlignment.spaceBetween,
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () => Navigator.of(dialogContext).pop(),
+            ),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.delete_forever_outlined),
+              label: const Text('Excluir'),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+              onPressed: () {
+                Navigator.of(dialogContext).pop(); // Close dialog first
+                onDeleteConfirmed(); // Then execute delete
               },
             ),
           ],
@@ -112,15 +263,12 @@ class _CustomersState extends State<Customers> {
       return;
     }
     
-    // Get actual customer IDs to delete.
-    // It's crucial that _selectedCustomerIndices correspond to the current order in presenter.internalCustomers
     List<Customer> customersToDelete = _selectedCustomerIndices.map((index) {
-      // Add bounds check for safety, though ideally the indices should always be valid
       if (index < presenter.internalCustomers.length) {
         return presenter.internalCustomers[index];
       }
-      return null; // Should not happen in a well-synced UI
-    }).whereType<Customer>().toList(); // Filter out any nulls if error occurred
+      return null; 
+    }).whereType<Customer>().toList();
 
     if (customersToDelete.isEmpty && _selectedCustomerIndices.isNotEmpty) {
        ScaffoldMessenger.of(context).showSnackBar(
@@ -129,46 +277,38 @@ class _CustomersState extends State<Customers> {
       return;
     }
 
-
-    showDialog(
-      context: context,
-      builder: (BuildContext dialogContext) => AlertDialog(
-        title: const Text('Confirmar Exclusão'),
-        content: Text('Tem certeza que deseja excluir ${_selectedCustomerIndices.length} cliente(s) selecionado(s)?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Cancelar')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () async {
-                bool allSucceeded = true;
-                for (var customer in customersToDelete) {
-                  try {
-                    await presenter.deleteInternalCustomer(customer.id); 
-                  } catch (e) {
-                    allSucceeded = false;
-                    print("Failed to delete customer ${customer.id}: $e");
-                    // Optionally show error for specific customer
-                  }
-                }
-                // Clear selection regardless of individual failures, presenter will update list
-                setState(() {
-                  _selectedCustomerIndices = []; 
-                });
-                Navigator.of(dialogContext).pop();
-                if (allSucceeded) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Cliente(s) excluído(s) com sucesso!'), backgroundColor: Colors.green,)
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Alguns clientes não puderam ser excluídos.'), backgroundColor: Colors.orange,)
-                  );
-                }
-            }, 
-            child: const Text('Excluir')
-          ),
-        ],
-      )
+    _confirmDeleteDialog(
+      context,
+      () async {
+        bool allSucceeded = true;
+        int successCount = 0;
+        for (var customer in customersToDelete) {
+          try {
+            await presenter.deleteInternalCustomer(customer.id);
+            successCount++;
+          } catch (e) {
+            allSucceeded = false;
+            print("Failed to delete customer ${customer.id}: $e");
+          }
+        }
+        setState(() { _selectedCustomerIndices = []; }); // Clear selection
+        
+        if (successCount > 0 && allSucceeded) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$successCount cliente(s) excluído(s) com sucesso!'), backgroundColor: Colors.green)
+          );
+        } else if (successCount > 0 && !allSucceeded) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$successCount cliente(s) excluído(s). Alguns falharam.'), backgroundColor: Colors.orange)
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Falha ao excluir cliente(s) selecionado(s).'), backgroundColor: Colors.red)
+          );
+        }
+      },
+      _selectedCustomerIndices.length.toString(),
+      multiple: true
     );
   }
 
@@ -184,7 +324,7 @@ class _CustomersState extends State<Customers> {
           const Sidebar(selected: 'Clientes'),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 0), // Adjust bottom padding if FAB overlaps
+              padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -201,21 +341,35 @@ class _CustomersState extends State<Customers> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Wrap( // Use Wrap for better responsiveness of action buttons
-                        spacing: 12.0, // Horizontal space between buttons
-                        runSpacing: 8.0, // Vertical space if they wrap
+                      Wrap( 
+                        spacing: 12.0, 
+                        runSpacing: 8.0, 
                         children: [
                           ElevatedButton.icon(
                             icon: const Icon(Icons.delete_outline, size: 18),
                             label: const Text('Excluir'),
                             onPressed: _selectedCustomerIndices.isNotEmpty ? _deleteSelectedCustomers : null,
-                            style: ElevatedButton.styleFrom(
-                              foregroundColor: _selectedCustomerIndices.isNotEmpty ? Colors.red.shade700 : Colors.grey, 
-                              backgroundColor: _selectedCustomerIndices.isNotEmpty ? Colors.red.shade100 : Colors.grey.shade300,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            style: ButtonStyle(
+                              padding: MaterialStateProperty.all(const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
+                              elevation: MaterialStateProperty.all(0),
+                              shape: MaterialStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                              foregroundColor: MaterialStateProperty.resolveWith<Color?>(
+                                (Set<MaterialState> states) {
+                                  if (states.contains(MaterialState.disabled)) {
+                                    return Colors.grey.shade500; // Cor do texto quando desabilitado
+                                  }
+                                  return Colors.red.shade700; // Cor do texto quando habilitado
+                                },
+                              ),
+                              backgroundColor: MaterialStateProperty.resolveWith<Color?>(
+                                (Set<MaterialState> states) {
+                                  if (states.contains(MaterialState.disabled)) {
+                                    return Colors.grey.shade200; // Cor de fundo quando desabilitado
+                                  }
+                                  return Colors.red.shade100; // Cor de fundo quando habilitado
+                                },
+                              ),
+                              textStyle: MaterialStateProperty.all(const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
                             ),
                           ),
                           OutlinedButton.icon(
@@ -283,25 +437,40 @@ class _CustomersState extends State<Customers> {
                           }
 
                           if (!presenter.isLoading && presenter.internalCustomers.isEmpty) {
-                            return const Center(
-                              child: Text(
-                                'Nenhum cliente encontrado.',
-                                style: TextStyle(fontSize: 16, color: Color(0xFF718096)),
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.people_outline, size: 60, color: Colors.grey.shade400),
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'Nenhum cliente encontrado.',
+                                    style: TextStyle(fontSize: 17, color: Color(0xFF718096)),
+                                  ),
+                                   const SizedBox(height: 8),
+                                  ElevatedButton.icon(
+                                    icon: const Icon(Icons.add),
+                                    label: const Text('Adicionar Primeiro Cliente'),
+                                    onPressed: _showAddCustomerDialog,
+                                    style: ElevatedButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      backgroundColor: Theme.of(context).primaryColor,
+                                    ),
+                                  )
+                                ],
                               ),
                             );
                           }
                           
                           final List<List<String>> tableData =
                               presenter.internalCustomers.map((customer) {
-                            // Assuming your Customer model has a 'status' field or you derive it.
-                            // For now, using a mock status based on ID. Replace with actual data.
                             String status = customer.id % 3 == 0 ? 'Active' : (customer.id % 3 == 1 ? 'Inactive' : 'Pending'); 
                             return [
                               customer.nome,
                               customer.cpf,
                               customer.email,
                               customer.telefone,
-                              status, // Actual status data
+                              'Active', 
                             ];
                           }).toList();
 
@@ -313,46 +482,30 @@ class _CustomersState extends State<Customers> {
                                 _selectedCustomerIndices = selectedIndices;
                               });
                             },
-                            onEdit: (rowIndex) {
+                            onEdit: (rowIndex) { 
                               if (rowIndex < presenter.internalCustomers.length) {
                                 final customer = presenter.internalCustomers[rowIndex];
-                                // TODO: Implement actual edit dialog/screen
-                                print('Edit customer: ${customer.nome}');
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Editar ${customer.nome} (não implementado).'))
-                                );
+                                _showEditCustomerDialog(customer, rowIndex);
                               }
                             },
                             onDelete: (rowIndex) {
                                if (rowIndex < presenter.internalCustomers.length) {
                                 final customer = presenter.internalCustomers[rowIndex];
-                                showDialog(
-                                  context: context,
-                                  builder: (BuildContext dialogContext) => AlertDialog(
-                                    title: const Text('Confirmar Exclusão'),
-                                    content: Text('Tem certeza que deseja excluir ${customer.nome}?'),
-                                    actions: [
-                                      TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Cancelar')),
-                                      ElevatedButton(
-                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                                        onPressed: () async {
-                                          try {
-                                            await presenter.deleteInternalCustomer(customer.id);
-                                            Navigator.of(dialogContext).pop();
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(content: Text('Cliente excluído com sucesso!'), backgroundColor: Colors.green,)
-                                            );
-                                          } catch (e) {
-                                            Navigator.of(dialogContext).pop();
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(content: Text('Falha ao excluir cliente: $e'), backgroundColor: Colors.red,)
-                                            );
-                                          }
-                                        }, 
-                                        child: const Text('Excluir')
-                                      ),
-                                    ],
-                                  )
+                                _confirmDeleteDialog(
+                                  context,
+                                  () async {
+                                      try {
+                                        await presenter.deleteInternalCustomer(customer.id);
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Cliente excluído com sucesso!'), backgroundColor: Colors.green,)
+                                        );
+                                      } catch (e) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Falha ao excluir cliente: ${e.toString()}'), backgroundColor: Colors.red,)
+                                        );
+                                      }
+                                  },
+                                  customer.nome
                                 );
                               }
                             },
