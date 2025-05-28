@@ -9,6 +9,7 @@ import 'package:agendai/presenter/scheduling_presenter.dart';
 import 'package:agendai/presenter/servico_presenter.dart';
 import 'package:agendai/presenter/splash_presenter.dart';
 import 'package:agendai/view/customers.dart';
+import 'package:agendai/view/dashboard.dart';
 import 'package:agendai/view/employees.dart';
 import 'package:agendai/view/employees_register.dart';
 import 'package:agendai/view/home.dart';
@@ -78,6 +79,7 @@ class MyApp extends StatelessWidget {
         '/home': (context) => const Home(),
         '/service': (context) => const Service(),
         '/customers': (context) => const Customers(),
+        '/dashboard': (context) => const Dashboard(),
         '/service-register': (context) => const ServiceRegister(),
         '/employees': (context) => const Employees(),
         '/employee-register': (context) => const EmployeesRegister(),

@@ -61,7 +61,6 @@ class _HomeState extends State<Home> {
     return Scaffold(
         body: Row(
       children: [
-        const Sidebar(selected: 'Home'),
         Consumer<HomePresenter>(
           builder: (context, presenter, child) {
             if (presenter.loadingHome) {

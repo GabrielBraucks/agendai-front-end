@@ -1,13 +1,39 @@
-import 'package:agendai/entity/scheduling.dart' as entity;
-import 'package:agendai/presenter/scheduling_presenter.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:kalender/kalender.dart'; // Assuming this is the correct package
-import 'package:provider/provider.dart';
+import 'package:table_calendar/table_calendar.dart';
+import 'package:uuid/uuid.dart';
+import 'package:agendai/widgets/sidebar.dart';
+class Event {
+  final String id;
+  final String title;
+  final DateTime startTime;
+  final DateTime endTime;
+  final Color color;
+  final String category; // Para ligar aos CalendarDetailItem
 
-// Enum for different calendar views
-enum CalendarViewType { month, week, day }
+  Event({
+    required this.id,
+    required this.title,
+    required this.startTime,
+    required this.endTime,
+    required this.color,
+    required this.category,
+  });
+}
 
+// Estrutura de dados para os detalhes do calendário no painel lateral.
+class CalendarDetailItem {
+  final String name;
+  final Color color;
+  bool isVisible;
+
+  CalendarDetailItem({
+    required this.name,
+    required this.color,
+    this.isVisible = true,
+  });
+}
+// O widget principal da página de agendamento, StatefulWidget para gerir o estado.
 class Scheduling extends StatefulWidget {
   const Scheduling({super.key});
 
@@ -16,425 +42,698 @@ class Scheduling extends StatefulWidget {
 }
 
 class _SchedulingState extends State<Scheduling> {
-  final eventsController = DefaultEventsController<entity.Scheduling>(); // Store full event data
-  final calendarController = CalendarController();
+  // Gerador de UUID para IDs de eventos únicos.
+  final Uuid _uuid = const Uuid();
 
-  CalendarViewType _currentView = CalendarViewType.month;
+  // Estado para o dia focado e selecionado no calendário.
+  DateTime _focusedDay = DateTime.now();
+  DateTime? _selectedDay;
+
+  // Lista de meses para o dropdown.
+  final List<String> _months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+  String? _selectedMonth;
+
+  // Lista de eventos de exemplo.
+  late List<Event> _events;
+
+  // Lista de detalhes do calendário de exemplo.
+  late List<CalendarDetailItem> _calendarDetails;
+
+  // Hora de início e fim para a vista de agendamento.
+  final int _startHour = 8;
+  final int _endHour = 18;
+  final double _hourHeight = 60.0; // Altura de cada slot de hora em pixels.
 
   @override
   void initState() {
     super.initState();
-    // Initialize locale for intl package (ensure it's done in main.dart ideally)
-    // initializeDateFormatting('pt_BR', null); // Already done in main usually
+    _selectedDay = _focusedDay;
+    _selectedMonth = _months[_focusedDay.month - 1];
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      loadSchedulings();
-    });
+    // Inicializar com alguns dados de exemplo.
+    _calendarDetails = [
+      CalendarDetailItem(name: "Operating Systems", color: Colors.blue.shade300),
+      CalendarDetailItem(name: "UI Design", color: Colors.cyan.shade300),
+      CalendarDetailItem(name: "Foreign Language", color: Colors.orange.shade300),
+      CalendarDetailItem(name: "Computer Networks", color: Colors.red.shade300),
+      CalendarDetailItem(name: "Databases", color: Colors.green.shade300),
+      CalendarDetailItem(name: "C# Programming", color: Colors.purple.shade300),
+    ];
+
+    _events = [
+      Event(
+        id: _uuid.v4(),
+        title: "Operating Systems Lecture",
+        startTime: DateTime(_focusedDay.year, _focusedDay.month, _focusedDay.day, 9, 0),
+        endTime: DateTime(_focusedDay.year, _focusedDay.month, _focusedDay.day, 10, 20),
+        color: _calendarDetails[0].color,
+        category: _calendarDetails[0].name,
+      ),
+      Event(
+        id: _uuid.v4(),
+        title: "UI Design Workshop",
+        startTime: DateTime(_focusedDay.year, _focusedDay.month, _focusedDay.day, 12, 30),
+        endTime: DateTime(_focusedDay.year, _focusedDay.month, _focusedDay.day, 13, 50),
+        color: _calendarDetails[1].color,
+        category: _calendarDetails[1].name,
+      ),
+      Event(
+        id: _uuid.v4(),
+        title: "Operating Systems Lab",
+        // Exemplo para um dia diferente na mesma semana (se _focusedDay for segunda-feira, isto será terça-feira)
+        startTime: DateTime(_focusedDay.year, _focusedDay.month, _focusedDay.day + (_focusedDay.weekday <= 2 ? (2 - _focusedDay.weekday) : (9 - _focusedDay.weekday)), 10, 30),
+        endTime: DateTime(_focusedDay.year, _focusedDay.month, _focusedDay.day + (_focusedDay.weekday <= 2 ? (2 - _focusedDay.weekday) : (9 - _focusedDay.weekday)), 11, 50),
+        color: _calendarDetails[0].color,
+        category: _calendarDetails[0].name,
+      ),
+    ];
   }
 
-  /// Loads schedulings from the API and adds them to the calendar
-  Future<void> loadSchedulings() async {
-    final presenter = Provider.of<SchedulingPresenter>(context, listen: false);
-    // Ensure isLoading is properly managed in presenter
-    if (presenter.loadingScheduling) return;
-    await presenter.getScheduling();
+  // Constrói a barra superior da página.
+  Widget _buildTopBar() {
+    // Determina o início e o fim da semana atual.
+    // Ajuste para garantir que a semana comece corretamente com base em _focusedDay.
+    // A imagem de referência parece usar Domingo como primeiro dia da semana.
+    DateTime startOfWeek = _focusedDay.subtract(Duration(days: _focusedDay.weekday % 7)); // Domingo é 0 se weekday for 7 (Sunday)
+    DateTime endOfWeek = startOfWeek.add(const Duration(days: 6));
 
-    eventsController.clearEvents();
-
-    for (var agendamento in presenter.scheduling) {
-      addSchedulingEvent(agendamento);
-    }
-    // No need to call setState here as EventsController updates the CalendarView
-  }
-
-  /// Adds a scheduling entity as a CalendarEvent
-  void addSchedulingEvent(entity.Scheduling agendamento) {
-    try {
-      final dateParts = agendamento.data.split('-');
-      final timeParts = agendamento.horario.split(':');
-
-      if (dateParts.length != 3 || timeParts.length < 2) {
-        print('Invalid date or time format for scheduling: ${agendamento.id}');
-        return;
-      }
-
-      final date = DateTime(
-        int.parse(dateParts[0]), // year
-        int.parse(dateParts[1]), // month
-        int.parse(dateParts[2]), // day
-        int.parse(timeParts[0]), // hour
-        int.parse(timeParts[1]), // minute
-        timeParts.length > 2 ? int.parse(timeParts[2]) : 0, // seconds (optional)
-      );
-
-      Duration duration;
-      if (agendamento.duracao.contains(':')) {
-        final durationParts = agendamento.duracao.split(':');
-        duration = Duration(
-          hours: int.parse(durationParts[0]),
-          minutes: int.parse(durationParts[1]),
-        );
-      } else {
-        duration = Duration(minutes: int.parse(agendamento.duracao));
-      }
-
-      eventsController.addEvent(CalendarEvent<entity.Scheduling>(
-        dateTimeRange: DateTimeRange(start: date, end: date.add(duration)),
-        eventData: agendamento, // Store the full scheduling object
-      ));
-    } catch (e) {
-      print('Error parsing scheduling event: ${agendamento.id} - $e');
-    }
-  }
-
-  // Enhanced Tile Builder
-  Widget _eventTileBuilder(CalendarEvent<entity.Scheduling> event, TileConfiguration tileConfiguration) {
-    final agendamento = event.eventData;
-    final Color tileColor = agendamento != null && agendamento.id % 2 == 0 ? Colors.blue.shade200 : Colors.green.shade200;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 2.0, vertical: 1.0),
-      padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 4.0),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
-        color: tileColor.withOpacity(0.8),
-        borderRadius: BorderRadius.circular(6),
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
       ),
-      child: Text(
-        agendamento?.nomeServico ?? 'Agendamento',
-        style: TextStyle(
-          fontSize: 11,
-          color: Colors.grey.shade900,
-          fontWeight: FontWeight.w500,
-        ),
-        overflow: TextOverflow.ellipsis,
-        maxLines: tileConfiguration.maxLines,
-      ),
-    );
-  }
-
-
-  @override
-  Widget build(BuildContext context) {
-    final presenter = Provider.of<SchedulingPresenter>(context);
-
-    return Scaffold(
-      appBar: AppBar(
-        elevation: 1,
-        title: ValueListenableBuilder<DateTimeRange>(
-          valueListenable: calendarController.visibleDateTimeRange,
-          builder: (context, dateTimeRange, _) {
-            final dateFormat = _currentView == CalendarViewType.day
-                ? DateFormat('dd MMMM yyyy', 'pt_BR')
-                : DateFormat('MMMM yyyy', 'pt_BR');
-            final titleText = dateFormat.format(dateTimeRange.start);
-            return Text(titleText[0].toUpperCase() + titleText.substring(1));
-          },
-        ),
-        actions: [
-          // View Switcher
-          PopupMenuButton<CalendarViewType>(
-            icon: const Icon(Icons.view_module),
-            tooltip: "Alterar Visualização",
-            onSelected: (CalendarViewType result) {
-              setState(() {
-                _currentView = result;
-              });
-            },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<CalendarViewType>>[
-              const PopupMenuItem<CalendarViewType>(
-                value: CalendarViewType.month,
-                child: Text('Mês'),
+      child: Row(
+        children: [
+          const Text(
+            "My schedule",
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(width: 20),
+          Text(
+            "${DateFormat('MMMM, dd').format(startOfWeek)} - ${DateFormat('dd').format(endOfWeek)}",
+            style: TextStyle(fontSize: 16, color: Colors.grey.shade700),
+          ),
+          const Spacer(),
+          // Dropdown para selecionar o mês.
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade400),
+            ),
+            child: DropdownButton<String>(
+              value: _selectedMonth,
+              underline: const SizedBox(), // Remove a linha de sublinhado padrão
+              icon: const Icon(Icons.arrow_drop_down),
+              onChanged: (String? newValue) {
+                if (newValue != null) {
+                  setState(() {
+                    _selectedMonth = newValue;
+                    int monthIndex = _months.indexOf(newValue);
+                    // Mantém o dia do mês, se possível, ou vai para o último dia do novo mês
+                    int currentDay = _focusedDay.day;
+                    int year = _focusedDay.year;
+                    int newMonth = monthIndex + 1;
+                    int daysInNewMonth = DateTime(year, newMonth + 1, 0).day; // Dias no novo mês
+                    _focusedDay = DateTime(year, newMonth, currentDay > daysInNewMonth ? daysInNewMonth : currentDay);
+                    _selectedDay = _focusedDay; // Sincroniza o dia selecionado com o mês focado
+                  });
+                }
+              },
+              items: _months.map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(width: 16),
+          // Botão para adicionar novo evento.
+          ElevatedButton.icon(
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text("Add new"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
               ),
-              const PopupMenuItem<CalendarViewType>(
-                value: CalendarViewType.week,
-                child: Text('Semana'),
+            ),
+            onPressed: _showAddEventDialog,
+          ),
+          const SizedBox(width: 24),
+          // Secção do perfil do utilizador (placeholder).
+          Row(
+            children: [
+              const CircleAvatar(
+                // backgroundImage: NetworkImage('URL_DA_IMAGEM_DO_PERFIL_AQUI'), // Descomentar e adicionar URL
+                backgroundColor: Colors.grey,
+                child: Icon(Icons.person, color: Colors.white),
               ),
-              const PopupMenuItem<CalendarViewType>(
-                value: CalendarViewType.day,
-                child: Text('Dia'),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Vladislav Maidan", // Nome do utilizador como na imagem
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    "Group: IT3-20-1cx", // Grupo como na imagem
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+              IconButton(
+                icon: const Icon(Icons.arrow_drop_down),
+                onPressed: () {
+                  // Lógica para o dropdown do perfil do utilizador
+                },
               ),
             ],
           ),
-          IconButton(
-            icon: const Icon(Icons.arrow_left),
-            tooltip: "Anterior",
-            onPressed: () => calendarController.animateToPreviousPage(),
-          ),
-          IconButton(
-            icon: const Icon(Icons.arrow_right),
-            tooltip: "Próximo",
-            onPressed: () => calendarController.animateToNextPage(),
-          ),
-          IconButton(
-            icon: const Icon(Icons.today),
-            tooltip: "Hoje",
-            onPressed: () => calendarController.animateToDate(DateTime.now()),
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: "Recarregar",
-            onPressed: loadSchedulings,
-          ),
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline),
-            tooltip: "Novo Agendamento",
-            onPressed: () => _showAddEventDialog(null), // Pass null for new event
-          ),
         ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0), // Overall padding for the calendar area
-        child: presenter.loadingScheduling && eventsController.events.isEmpty
-            ? const Center(child: CircularProgressIndicator())
-            : CalendarView<entity.Scheduling>(
-                eventsController: eventsController,
-                calendarController: calendarController,
-                viewConfiguration: _getViewConfiguration(),
-                tileComponents: TileComponents(
-                  monthTileBuilder: _eventTileBuilder,
-                  multiDayTileBuilder: _eventTileBuilder,
-                  scheduleTileBuilder: _eventTileBuilder, // For schedule list view if used
-                ),
-                callbacks: CalendarCallbacks<entity.Scheduling>(
-                  onEventTapped: _onEventTapped,
-                  onDateTapped: _onDateTapped,
-                  // onEventCreated: (event) => eventsController.addEvent(event), // For drag & drop creation
-                ),
-                headerComponents: CalendarHeaderComponents( // Customize header appearance
-                  calendarHeaderBuilder: (context, dateTimeRange, viewConfiguration) {
-                     return DefaultCalendarHeader(
-                        dateTimeRange: dateTimeRange,
-                        viewConfiguration: viewConfiguration,
-                        onTodayButtonTapped: () => calendarController.animateToDate(DateTime.now()),
-                     );
-                  }
-                ),
-              ),
       ),
     );
   }
 
-  ViewConfiguration _getViewConfiguration() {
-    switch (_currentView) {
-      case CalendarViewType.month:
-        return const MonthViewConfiguration(
-          // Custom month view options if needed
-          // e.g., showWeekNumbers: true,
-        );
-      case CalendarViewType.week:
-        return const WeekViewConfiguration(
-          // Custom week view options
-          // e.g., timelineWidth: 500,
-        );
-      case CalendarViewType.day:
-        return const DayViewConfiguration(
-          // Custom day view options
-          // e.g., hourlineTimelineOverlap: 10,
-        );
+  // Constrói a linha de conteúdo principal com a vista semanal e a barra lateral.
+  Widget _buildMainContentRow() {
+    return Expanded(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Vista de agendamento semanal.
+          Expanded(
+            flex: 3, // A vista de agendamento ocupa mais espaço
+            child: _buildWeeklyScheduleView(),
+          ),
+          // Barra lateral direita.
+          Container(
+            width: 300, // Largura fixa para a barra lateral
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(left: BorderSide(color: Colors.grey.shade300)),
+            ),
+            child: _buildRightSidebar(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Constrói a vista de agendamento semanal.
+  Widget _buildWeeklyScheduleView() {
+    // Determina os dias da semana atual para exibir.
+    // A imagem de referência mostra Domingo como o primeiro dia da semana.
+    DateTime startOfWeek = _focusedDay.subtract(Duration(days: _focusedDay.weekday % 7));
+    if (_focusedDay.weekday == DateTime.sunday) { // Em Dart, Sunday é 7.
+        startOfWeek = _focusedDay.subtract(Duration(days: 0)); // Se já é domingo
+    } else {
+        startOfWeek = _focusedDay.subtract(Duration(days: _focusedDay.weekday));
     }
-  }
-
-  void _onEventTapped(CalendarEvent<entity.Scheduling> event) {
-    final agendamento = event.eventData;
-    if (agendamento == null) return;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(agendamento.nomeServico),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Cliente: ${agendamento.nomeCliente}'),
-            Text('Data: ${DateFormat('dd/MM/yyyy', 'pt_BR').format(event.start)}'),
-            Text('Horário: ${DateFormat.Hm('pt_BR').format(event.start)} - ${DateFormat.Hm('pt_BR').format(event.end)}'),
-            Text('Duração: ${agendamento.duracao}'),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Fechar')),
-          // TODO: Add Edit/Delete buttons here
-        ],
-      ),
-    );
-  }
-
-  void _onDateTapped(DateTime date) {
-    _showAddEventDialog(date);
-  }
 
 
-  void _showAddEventDialog(DateTime? preselectedDate) {
-    final nameController = TextEditingController();
-    final emailController = TextEditingController();
-    final phoneController = TextEditingController();
-    final cpfController = TextEditingController();
-    // TODO: Replace with actual service data from presenter or API
-    String? selectedServiceId = "1"; // Placeholder
-    List<DropdownMenuItem<String>> serviceItems = [
-       const DropdownMenuItem(value: "1", child: Text('Corte de Cabelo (Mock)')),
-       const DropdownMenuItem(value: "2", child: Text('Manicure (Mock)')),
-    ];
+    List<DateTime> weekDays = List.generate(7, (index) => startOfWeek.add(Duration(days: index)));
 
-
-    DateTime selectedDate = preselectedDate ?? DateTime.now();
-    TimeOfDay selectedTime = preselectedDate != null 
-                             ? TimeOfDay.fromDateTime(preselectedDate) 
-                             : TimeOfDay.now();
-    
-    // State for the dialog itself
-    final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext dialogContext) {
-        // Use StatefulBuilder to manage state within the dialog (for date/time pickers)
-        return StatefulBuilder(
-          builder: (stfContext, stfSetState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: Row(children: [
-                Icon(Icons.event_available, color: Theme.of(stfContext).primaryColor),
-                const SizedBox(width: 8),
-                const Text('Novo Agendamento'),
-              ]),
-              content: SingleChildScrollView(
-                child: Form(
-                  key: formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Service Selection
-                      Card(
-                        elevation: 0, color: Colors.grey.shade100,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text('Serviço', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(stfContext).primaryColor)),
-                            const SizedBox(height: 8),
-                            DropdownButtonFormField<String>(
-                              decoration: InputDecoration(
-                                filled: true, fillColor: Colors.white,
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                              ),
-                              value: selectedServiceId,
-                              items: serviceItems,
-                              hint: const Text('Selecione um serviço'),
-                              onChanged: (value) {
-                                stfSetState(() { selectedServiceId = value; });
-                              },
-                              validator: (value) => value == null ? 'Selecione um serviço' : null,
-                            ),
-                          ]),
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Cabeçalho dos dias da semana.
+          Padding(
+            padding: const EdgeInsets.only(left: 60.0, top: 16.0, bottom:8.0, right: 16.0), // Alinhar com a coluna de tempo
+            child: Row(
+              children: [
+                //const SizedBox(width: 0), // Espaço para a coluna de tempo // Removido pois o padding esquerdo já cuida disso
+                ...weekDays.map((day) => Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _selectedDay = day;
+                        _focusedDay = day; // Também foca no dia clicado
+                         _selectedMonth = _months[_focusedDay.month - 1];
+                      });
+                    },
+                    child: Column(
+                      children: [
+                          Text(
+                          DateFormat('EEE').format(day), // Dia da semana (Dom, Seg, Ter)
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      // Client Info
-                      Card(
-                        elevation: 0, color: Colors.grey.shade100,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Row(children: [
-                              Icon(Icons.person, size: 18, color: Theme.of(stfContext).primaryColor),
-                              const SizedBox(width: 8),
-                              Text('Informações do Cliente', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(stfContext).primaryColor)),
-                            ]),
-                            const SizedBox(height: 12),
-                            TextFormField(controller: nameController, decoration: _inputDecoration('Nome Completo', Icons.person_outline), validator: (v) => v!.isEmpty ? 'Nome é obrigatório' : null),
-                            const SizedBox(height: 12),
-                            TextFormField(controller: emailController, decoration: _inputDecoration('Email', Icons.email_outlined), keyboardType: TextInputType.emailAddress, validator: (v) => v!.isEmpty || !v.contains('@') ? 'Email inválido' : null),
-                            const SizedBox(height: 12),
-                            TextFormField(controller: phoneController, decoration: _inputDecoration('Telefone', Icons.phone_outlined), keyboardType: TextInputType.phone, validator: (v) => v!.isEmpty ? 'Telefone é obrigatório' : null),
-                            const SizedBox(height: 12),
-                            TextFormField(controller: cpfController, decoration: _inputDecoration('CPF (Opcional)', Icons.badge_outlined)),
-                          ]),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      // Date and Time
-                      Card(
-                        elevation: 0, color: Colors.grey.shade100,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Row(children: [
-                              Icon(Icons.calendar_today, size: 18, color: Theme.of(stfContext).primaryColor),
-                              const SizedBox(width: 8),
-                              Text('Data e Horário', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(stfContext).primaryColor)),
-                            ]),
-                            const SizedBox(height: 12),
-                            InkWell(
-                              onTap: () async {
-                                final DateTime? pickedDate = await showDatePicker(
-                                  context: stfContext, initialDate: selectedDate,
-                                  firstDate: DateTime.now().subtract(const Duration(days: 30)), // Allow past for demo
-                                  lastDate: DateTime.now().add(const Duration(days: 365)),
-                                  builder: (context, child) => Theme(data: Theme.of(context).copyWith(colorScheme: ColorScheme.light(primary: Theme.of(context).primaryColor)), child: child!),
-                                );
-                                if (pickedDate != null) {
-                                  stfSetState(() { selectedDate = pickedDate; });
-                                }
-                              },
-                              child: _dateTimePickerDisplay(DateFormat('dd/MM/yyyy', 'pt_BR').format(selectedDate), Icons.calendar_month),
+                        Container(
+                           padding: const EdgeInsets.all(4.0),
+                           decoration: BoxDecoration(
+                             color: isSameDay(day, _selectedDay) ? Colors.blue.shade400 : Colors.transparent,
+                             shape: BoxShape.circle,
+                           ),
+                          child: Text(
+                            DateFormat('d').format(day), // Dia do mês
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: isSameDay(day, _selectedDay) ? Colors.white : Colors.black,
                             ),
-                            const SizedBox(height: 12),
-                            InkWell(
-                              onTap: () async {
-                                final TimeOfDay? pickedTime = await showTimePicker(
-                                  context: stfContext, initialTime: selectedTime,
-                                  builder: (context, child) => Theme(data: Theme.of(context).copyWith(colorScheme: ColorScheme.light(primary: Theme.of(context).primaryColor)), child: child!),
-                                );
-                                if (pickedTime != null) {
-                                  stfSetState(() { selectedTime = pickedTime; });
-                                }
-                              },
-                              child: _dateTimePickerDisplay('${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}', Icons.access_time),
-                            ),
-                          ]),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                  ),
+                )).toList(),
+              ],
+            ),
+          ),
+          // Grelha de agendamento principal.
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildTimeColumn(), // Coluna com as etiquetas de tempo.
+              // Colunas para cada dia da semana.
+              Expanded(
+                child: SingleChildScrollView( // Permite rolagem horizontal se as colunas dos dias excederem a largura
+                  scrollDirection: Axis.horizontal,
+                  child: Row( // Contém as colunas dos dias
+                    children: weekDays.map((day) {
+                      // Filtra eventos para este dia específico e que estão visíveis.
+                      List<Event> eventsForDay = _events.where((event) {
+                        final calendarDetail = _calendarDetails.firstWhere(
+                          (detail) => detail.name == event.category,
+                          // Provide a default CalendarDetailItem if not found, to avoid errors
+                          // This default item should ideally not match any real category or be invisible.
+                          orElse: () => CalendarDetailItem(name: "UnknownCategoryPlaceholder", color: Colors.transparent, isVisible: false)
+                        );
+                        return isSameDay(event.startTime, day) && calendarDetail.isVisible;
+                      }).toList();
+                      return _buildDayColumn(day, eventsForDay);
+                    }).toList(),
                   ),
                 ),
               ),
-              actionsAlignment: MainAxisAlignment.spaceBetween,
-              actions: [
-                TextButton(onPressed: () => Navigator.of(stfContext).pop(), child: const Text('Cancelar')),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.check_circle_outline),
-                  label: const Text('Agendar'),
-                  style: ElevatedButton.styleFrom(backgroundColor: Theme.of(stfContext).primaryColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                  onPressed: () async {
-                    if (formKey.currentState!.validate()) {
-                      if (selectedServiceId == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Por favor, selecione um serviço.'), backgroundColor: Colors.orange,));
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Constrói a coluna de etiquetas de tempo.
+  Widget _buildTimeColumn() {
+    List<Widget> timeSlots = [];
+    for (int hour = _startHour; hour <= _endHour; hour++) {
+      timeSlots.add(
+        Container(
+          height: _hourHeight,
+          alignment: Alignment.topCenter,
+          padding: const EdgeInsets.only(top: 4), // Pequeno padding para o texto da hora
+          child: Text(
+            "${hour.toString().padLeft(2, '0')}:00",
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          ),
+        ),
+      );
+    }
+    return Container(
+      width: 60, // Largura da coluna de tempo
+      padding: const EdgeInsets.only(top:0), // Alinha com o topo das colunas de dia
+      child: Column(children: timeSlots),
+    );
+  }
+
+  // Constrói uma única coluna de dia na vista semanal.
+  Widget _buildDayColumn(DateTime dayDate, List<Event> eventsForDay) {
+    // Altura total da coluna do dia.
+    double totalHeight = (_endHour - _startHour + 1) * _hourHeight; // +1 for the visual slot of the end hour
+
+    return Container(
+      width: 150, // Largura de cada coluna de dia
+      height: totalHeight,
+      decoration: BoxDecoration(
+        border: Border(
+          left: BorderSide(color: Colors.grey.shade200),
+          // Adiciona uma borda direita a todas exceto à última coluna de dia (Sábado)
+           right: dayDate.weekday == DateTime.saturday ? BorderSide(color: Colors.grey.shade200) : BorderSide.none, // Add right border to Saturday too
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Linhas de fundo para as horas.
+          ...List.generate(_endHour - _startHour + 1, (index) { // +1 para incluir a linha inferior da última hora
+            return Positioned(
+              top: index * _hourHeight,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: _hourHeight, // A altura da célula da hora
+                decoration: BoxDecoration(
+                  border: Border( // Desenha apenas a linha inferior para cada célula de hora
+                    bottom: BorderSide(color: Colors.grey.shade200),
+                  ),
+                ),
+              ),
+            );
+          }),
+          // Renderiza os eventos para este dia.
+          ...eventsForDay.map((event) => _buildEventWidget(event, dayDate)).toList(),
+        ],
+      ),
+    );
+  }
+
+  // Constrói um widget de evento individual.
+  Widget _buildEventWidget(Event event, DateTime dayDate) {
+    // Calcula a posição e a altura do evento.
+    double top = (event.startTime.hour - _startHour + (event.startTime.minute / 60.0)) * _hourHeight;
+    double height = (event.endTime.difference(event.startTime).inMinutes / 60.0) * _hourHeight;
+
+    // Garante que o evento não comece antes do _startHour visualmente.
+    if (event.startTime.hour < _startHour) {
+        final visibleStartTime = DateTime(event.startTime.year, event.startTime.month, event.startTime.day, _startHour, 0);
+        if (event.endTime.isAfter(visibleStartTime)) {
+            height = (event.endTime.difference(visibleStartTime).inMinutes / 60.0) * _hourHeight;
+        } else {
+            height = 0; // Event ends before visual start
+        }
+        top = 0;
+    }
+     // Garante que o evento não ultrapasse o _endHour visualmente.
+    DateTime visualEndTimeLimit = DateTime(dayDate.year, dayDate.month, dayDate.day, _endHour, 0);
+    if (event.endTime.isAfter(visualEndTimeLimit)) {
+        if(event.startTime.isBefore(visualEndTimeLimit)) {
+             height = (visualEndTimeLimit.difference(event.startTime).inMinutes / 60.0) * _hourHeight;
+             // Adjust if original top was also modified
+             if (event.startTime.hour < _startHour) {
+                 DateTime visualStartTime = DateTime(dayDate.year, dayDate.month, dayDate.day, _startHour, 0);
+                 height = (visualEndTimeLimit.difference(visualStartTime).inMinutes / 60.0) * _hourHeight;
+             }
+        } else {
+            height = 0; // Event starts at or after visual end
+        }
+    }
+
+
+    if (height <= 0) return const SizedBox.shrink(); // Não renderiza se a altura for inválida
+
+    // Calcula uma cor de borda ligeiramente mais escura.
+    final HSLColor hslColor = HSLColor.fromColor(event.color);
+    final HSLColor darkerHslColor = hslColor.withLightness((hslColor.lightness - 0.1).clamp(0.0, 1.0));
+    final Color borderColor = darkerHslColor.toColor();
+
+    return Positioned(
+      top: top.clamp(0.0, (_endHour - _startHour) * _hourHeight), // Clamp top position
+      left: 5, // Pequeno preenchimento dentro da coluna do dia
+      right: 5,
+      height: height.clamp(0.0, (_endHour - event.startTime.hour - (event.startTime.minute/60.0)) * _hourHeight ), // Clamp height
+      child: Tooltip(
+        message: "${event.title}\n${DateFormat.Hm().format(event.startTime)} - ${DateFormat.Hm().format(event.endTime)}",
+        child: GestureDetector(
+          onTap: () {
+            // Lógica para editar ou ver detalhes do evento
+            _showEditEventDialog(event);
+          },
+          child: Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: event.color.withOpacity(0.8),
+              borderRadius: BorderRadius.circular(4),
+              border: Border(left: BorderSide(color: borderColor, width: 3)),
+            ),
+            child: Text(
+              "${event.title}\n${DateFormat.Hm().format(event.startTime)} - ${DateFormat.Hm().format(event.endTime)}",
+              style: const TextStyle(color: Colors.white, fontSize: 10),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 3, // Ajuste conforme necessário para o conteúdo
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Constrói a barra lateral direita com o calendário e os detalhes.
+  Widget _buildRightSidebar() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Calendário de seleção de mês/dia.
+        TableCalendar(
+          locale: 'en_US', // Pode ser alterado para pt_BR ou pt_PT
+          firstDay: DateTime.utc(2000, 1, 1),
+          lastDay: DateTime.utc(2100, 12, 31),
+          focusedDay: _focusedDay,
+          selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+          calendarFormat: CalendarFormat.month, // Mostra apenas a vista de mês
+          startingDayOfWeek: StartingDayOfWeek.sunday, // Começa a semana no Domingo como na imagem
+          headerStyle: const HeaderStyle(
+            formatButtonVisible: false, // Esconde o botão de formato (semana, 2 semanas, mês)
+            titleCentered: true,
+            titleTextStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          calendarStyle: CalendarStyle(
+            todayDecoration: BoxDecoration(
+              color: Colors.blue.shade100,
+              shape: BoxShape.circle,
+            ),
+            selectedDecoration: BoxDecoration(
+              color: Colors.blue.shade400, // Cor de seleção mais proeminente
+              shape: BoxShape.circle,
+            ),
+              outsideDaysVisible: false, // Esconde dias fora do mês atual
+          ),
+          onDaySelected: (selectedDay, focusedDay) {
+            if (!isSameDay(_selectedDay, selectedDay)) {
+              setState(() {
+                _selectedDay = selectedDay;
+                _focusedDay = focusedDay; // Atualiza _focusedDay também
+                  _selectedMonth = _months[_focusedDay.month - 1]; // Atualiza o dropdown do mês
+              });
+            }
+          },
+          onPageChanged: (focusedDay) {
+            setState(() {
+                _focusedDay = focusedDay;
+                _selectedMonth = _months[_focusedDay.month - 1]; // Atualiza o dropdown do mês
+                // If the selected day is not in the new focused month, update selectedDay to the focusedDay
+                if (_selectedDay == null || _selectedDay!.month != _focusedDay.month || _selectedDay!.year != _focusedDay.year) {
+                   _selectedDay = _focusedDay;
+                }
+            });
+          },
+        ),
+        const SizedBox(height: 24),
+        // Secção de Detalhes do Calendário.
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              "Calendar Details",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            IconButton(
+              icon: const Icon(Icons.add, color: Colors.blue),
+              onPressed: () {
+                // Lógica para adicionar novo detalhe de calendário
+                _showAddCalendarDetailDialog();
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        // Lista de detalhes do calendário.
+        Expanded(child: _buildCalendarDetailsList()),
+      ],
+    );
+  }
+
+  // Constrói a lista de detalhes do calendário.
+  Widget _buildCalendarDetailsList() {
+    if (_calendarDetails.isEmpty) {
+      return const Center(child: Text("No calendar categories yet."));
+    }
+    return ListView.builder(
+      itemCount: _calendarDetails.length,
+      itemBuilder: (context, index) {
+        final detail = _calendarDetails[index];
+        return CheckboxListTile(
+          title: Text(detail.name, style: const TextStyle(fontSize: 14)),
+          value: detail.isVisible,
+          onChanged: (bool? value) {
+            if (value != null) {
+              setState(() {
+                detail.isVisible = value;
+              });
+            }
+          },
+          secondary: Container(
+            width: 16,
+            height: 16,
+            decoration: BoxDecoration(
+              color: detail.color,
+              borderRadius: BorderRadius.circular(4) // Pequeno arredondamento para o quadrado de cor
+            ),
+          ),
+          controlAffinity: ListTileControlAffinity.leading, // Checkbox à esquerda
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+        );
+      },
+    );
+  }
+
+  // Mostra um diálogo para adicionar um novo evento.
+  void _showAddEventDialog() {
+    final TextEditingController titleController = TextEditingController();
+    // Define a hora inicial para o dia selecionado no calendário, ou hoje se nenhum dia estiver selecionado.
+    DateTime initialDialogDate = _selectedDay ?? DateTime.now();
+    TimeOfDay initialStartTimeOfDay = const TimeOfDay(hour: 9, minute: 0); // Padrão 9:00 AM
+    TimeOfDay initialEndTimeOfDay = const TimeOfDay(hour: 10, minute: 0); // Padrão 10:00 AM
+
+
+    DateTime selectedStartTime = DateTime(initialDialogDate.year, initialDialogDate.month, initialDialogDate.day, initialStartTimeOfDay.hour, initialStartTimeOfDay.minute);
+    DateTime selectedEndTime = DateTime(initialDialogDate.year, initialDialogDate.month, initialDialogDate.day, initialEndTimeOfDay.hour, initialEndTimeOfDay.minute);
+
+    CalendarDetailItem? selectedCategory = _calendarDetails.isNotEmpty ? _calendarDetails.first : null;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder( // Necessário para atualizar o estado dentro do diálogo
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text("Add New Event"),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    TextField(
+                      controller: titleController,
+                      decoration: const InputDecoration(labelText: "Event Title"),
+                    ),
+                    const SizedBox(height: 20),
+                    // Seletores de Data e Hora
+                    Text("Start: ${DateFormat('EEE, MMM d, HH:mm').format(selectedStartTime)}"),
+                    ElevatedButton(
+                      child: const Text("Select Start Date & Time"),
+                      onPressed: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: selectedStartTime,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime(2101),
+                        );
+                        if (date == null) return;
+                        final time = await showTimePicker( // ignore: use_build_context_synchronously
+                          context: context,
+                          initialTime: TimeOfDay.fromDateTime(selectedStartTime),
+                        );
+                        if (time == null) return;
+                        setDialogState(() {
+                          selectedStartTime = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+                            // Garante que a hora de fim não seja anterior à nova hora de início
+                          if (selectedEndTime.isBefore(selectedStartTime)) {
+                            selectedEndTime = selectedStartTime.add(const Duration(hours: 1));
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Text("End: ${DateFormat('EEE, MMM d, HH:mm').format(selectedEndTime)}"),
+                    ElevatedButton(
+                      child: const Text("Select End Date & Time"),
+                      onPressed: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: selectedEndTime,
+                          firstDate: selectedStartTime, // Garante que a data de fim não seja anterior à de início
+                          lastDate: DateTime(2101),
+                        );
+                        if (date == null) return;
+                        final time = await showTimePicker( // ignore: use_build_context_synchronously
+                          context: context,
+                          initialTime: TimeOfDay.fromDateTime(selectedEndTime),
+                        );
+                        if (time == null) return;
+                        setDialogState(() {
+                          selectedEndTime = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+                           if (selectedEndTime.isBefore(selectedStartTime)) {
+                            // Optionally show a message or automatically adjust start time
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(backgroundColor: Colors.orangeAccent, content: Text("End time cannot be before start time. Adjusting start time."))
+                            );
+                            selectedStartTime = selectedEndTime.subtract(const Duration(hours:1)); // Example adjustment
+                          }
+                        });
+                      },
+                    ),
+                      const SizedBox(height: 20),
+                    if (_calendarDetails.isNotEmpty)
+                      DropdownButtonFormField<CalendarDetailItem>(
+                        decoration: const InputDecoration(labelText: "Category", border: OutlineInputBorder()),
+                        value: selectedCategory,
+                        items: _calendarDetails.map((CalendarDetailItem category) {
+                          return DropdownMenuItem<CalendarDetailItem>(
+                            value: category,
+                            child: Row(
+                              children: [
+                                Container(width: 12, height: 12, color: category.color, margin: const EdgeInsets.only(right: 8)),
+                                Text(category.name),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (CalendarDetailItem? newValue) {
+                            setDialogState(() {
+                              selectedCategory = newValue;
+                            });
+                        },
+                      )
+                    else
+                      const Text("Please add a calendar category first in the sidebar."),
+                  ],
+                ),
+              ),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text("Cancel"),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                ElevatedButton(
+                  child: const Text("Add Event"),
+                  onPressed: () {
+                    if (titleController.text.isNotEmpty && selectedCategory != null) {
+                      if (selectedEndTime.isBefore(selectedStartTime) || selectedEndTime.isAtSameMomentAs(selectedStartTime)) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(backgroundColor: Colors.redAccent, content: Text("End time must be after start time."))
+                          );
                         return;
                       }
-                      try {
-                        await Provider.of<SchedulingPresenter>(context, listen: false).createScheduling(
-                          idService: int.parse(selectedServiceId!), // Use actual service ID
-                          date: DateFormat('yyyy-MM-dd').format(selectedDate),
-                          time: "${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}:00",
-                          email: emailController.text,
-                          cpf: cpfController.text,
-                          name: nameController.text,
-                          celPhone: phoneController.text,
+                      setState(() {
+                        _events.add(Event(
+                          id: _uuid.v4(),
+                          title: titleController.text,
+                          startTime: selectedStartTime,
+                          endTime: selectedEndTime,
+                          color: selectedCategory!.color,
+                          category: selectedCategory!.name,
+                        ));
+                      });
+                      Navigator.of(context).pop();
+                    } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(backgroundColor: Colors.redAccent, content: Text("Please fill all fields and select a category."))
                         );
-                        await loadSchedulings(); // Reload events
-                        Navigator.of(stfContext).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Agendamento criado com sucesso!'), backgroundColor: Colors.green));
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Falha ao criar agendamento: ${e.toString()}'), backgroundColor: Colors.red));
-                      }
                     }
                   },
                 ),
@@ -446,28 +745,326 @@ class _SchedulingState extends State<Scheduling> {
     );
   }
 
-  InputDecoration _inputDecoration(String label, IconData? prefixIcon) {
-    return InputDecoration(
-      labelText: label,
-      filled: true,
-      fillColor: Colors.white,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-      prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: Colors.grey.shade600) : null,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+  // Mostra um diálogo para editar um evento existente.
+  void _showEditEventDialog(Event event) {
+    final TextEditingController titleController = TextEditingController(text: event.title);
+    DateTime selectedStartTime = event.startTime;
+    DateTime selectedEndTime = event.endTime;
+    
+    // --- CORRECTED LOGIC FOR selectedCategory INITIALIZATION ---
+    CalendarDetailItem? selectedCategory;
+    if (_calendarDetails.isNotEmpty) {
+      // If categories exist, try to find a match for event.category.
+      // If not found, default to the first category in the list.
+      selectedCategory = _calendarDetails.firstWhere(
+        (detail) => detail.name == event.category,
+        orElse: () => _calendarDetails.first, // _calendarDetails is guaranteed not empty here
+      );
+    } else {
+      // If no categories exist at all, selectedCategory remains null.
+      // The DropdownButtonFormField will be replaced by a Text widget later if this is the case.
+      selectedCategory = null;
+    }
+    // --- END OF CORRECTION ---
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text("Edit Event: ${event.title}"),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    TextField(
+                      controller: titleController,
+                      decoration: const InputDecoration(labelText: "Event Title"),
+                    ),
+                    const SizedBox(height: 20),
+                    Text("Start: ${DateFormat('EEE, MMM d, HH:mm').format(selectedStartTime)}"),
+                    ElevatedButton(
+                      child: const Text("Select Start Date & Time"),
+                      onPressed: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: selectedStartTime,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime(2101),
+                        );
+                        if (date == null) return;
+                        final time = await showTimePicker( // ignore: use_build_context_synchronously
+                          context: context,
+                          initialTime: TimeOfDay.fromDateTime(selectedStartTime),
+                        );
+                        if (time == null) return;
+                        setDialogState(() {
+                          selectedStartTime = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+                          if (selectedEndTime.isBefore(selectedStartTime)) {
+                            selectedEndTime = selectedStartTime.add(const Duration(hours: 1));
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Text("End: ${DateFormat('EEE, MMM d, HH:mm').format(selectedEndTime)}"),
+                    ElevatedButton(
+                      child: const Text("Select End Date & Time"),
+                      onPressed: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: selectedEndTime,
+                          firstDate: selectedStartTime, // Garante que a data de fim não seja anterior à de início
+                          lastDate: DateTime(2101),
+                        );
+                        if (date == null) return;
+                        final time = await showTimePicker( // ignore: use_build_context_synchronously
+                          context: context,
+                          initialTime: TimeOfDay.fromDateTime(selectedEndTime),
+                        );
+                        if (time == null) return;
+                        setDialogState(() {
+                          selectedEndTime = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+                           if (selectedEndTime.isBefore(selectedStartTime)) {
+                             ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(backgroundColor: Colors.orangeAccent, content: Text("End time cannot be before start time. Adjusting start time."))
+                            );
+                            selectedStartTime = selectedEndTime.subtract(const Duration(hours:1));
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    if (_calendarDetails.isNotEmpty)
+                      DropdownButtonFormField<CalendarDetailItem>(
+                        decoration: const InputDecoration(labelText: "Category", border: OutlineInputBorder()),
+                        value: selectedCategory, // This can be null if no categories or no match initially
+                        items: _calendarDetails.map((CalendarDetailItem category) {
+                          return DropdownMenuItem<CalendarDetailItem>(
+                            value: category,
+                            child: Row(
+                              children: [
+                                Container(width: 12, height: 12, color: category.color, margin: const EdgeInsets.only(right: 8)),
+                                Text(category.name),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (CalendarDetailItem? newValue) {
+                          setDialogState(() {
+                            selectedCategory = newValue;
+                          });
+                        },
+                      )
+                    else
+                      const Text("No categories available. Please add a category first."),
+                  ],
+                ),
+              ),
+              actions: <Widget>[
+                  TextButton(
+                    onPressed: () {
+                        // Confirmation Dialog for Delete
+                        showDialog(
+                            context: context,
+                            builder: (BuildContext alertContext) {
+                                return AlertDialog(
+                                    title: const Text("Confirm Delete"),
+                                    content: Text("Are you sure you want to delete the event '${event.title}'?"),
+                                    actions: [
+                                        TextButton(
+                                            child: const Text("Cancel"),
+                                            onPressed: () => Navigator.of(alertContext).pop(),
+                                        ),
+                                        TextButton(
+                                            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+                                            onPressed: () {
+                                                setState(() {
+                                                    _events.removeWhere((e) => e.id == event.id);
+                                                });
+                                                Navigator.of(alertContext).pop(); // Close confirmation dialog
+                                                Navigator.of(context).pop(); // Close edit dialog
+                                            },
+                                        ),
+                                    ],
+                                );
+                            },
+                        );
+                    },
+                    child: const Text("Delete", style: TextStyle(color: Colors.red))),
+                TextButton(
+                  child: const Text("Cancel"),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                ElevatedButton(
+                  child: const Text("Save Changes"),
+                  onPressed: () {
+                    if (titleController.text.isNotEmpty && selectedCategory != null) {
+                      if (selectedEndTime.isBefore(selectedStartTime) || selectedEndTime.isAtSameMomentAs(selectedStartTime)) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(backgroundColor: Colors.redAccent, content: Text("End time must be after start time."))
+                          );
+                        return;
+                      }
+                      setState(() {
+                        final eventIndex = _events.indexWhere((e) => e.id == event.id);
+                        if (eventIndex != -1) {
+                          _events[eventIndex] = Event(
+                            id: event.id, // Mantém o mesmo ID
+                            title: titleController.text,
+                            startTime: selectedStartTime,
+                            endTime: selectedEndTime,
+                            color: selectedCategory!.color,
+                            category: selectedCategory!.name,
+                          );
+                        }
+                      });
+                      Navigator.of(context).pop();
+                    } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(backgroundColor: Colors.redAccent, content: Text("Please fill all fields and select a category."))
+                        );
+                    }
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
-  Widget _dateTimePickerDisplay(String text, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-      child: Row(children: [
-        Icon(icon, color: Colors.grey.shade600),
-        const SizedBox(width: 8),
-        Text(text, style: const TextStyle(fontSize: 16)),
-        const Spacer(),
-        Icon(Icons.arrow_drop_down, color: Colors.grey.shade600),
-      ]),
+    // Mostra um diálogo para adicionar um novo detalhe de calendário.
+  void _showAddCalendarDetailDialog() {
+    final TextEditingController nameController = TextEditingController();
+    Color selectedColor = Colors.blue.shade300; // Cor padrão inicial
+
+    // Prepara uma lista de cores para o seletor
+    final List<Color> colorOptions = [
+      Colors.blue.shade300, Colors.green.shade300, Colors.red.shade300, Colors.orange.shade300,
+      Colors.purple.shade300, Colors.teal.shade300, Colors.pink.shade300, Colors.amber.shade300,
+      Colors.cyan.shade300, Colors.brown.shade300, Colors.indigo.shade300, Colors.lime.shade300,
+    ];
+    if (!colorOptions.contains(selectedColor)) {
+      selectedColor = colorOptions.first;
+    }
+
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text("Add Calendar Category"),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(labelText: "Category Name"),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text("Select Color:"),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 100, // Adjusted height for potentially two rows of colors
+                      child: Wrap( // Usa Wrap para quebrar para a próxima linha se necessário
+                        spacing: 8.0, // Espaço horizontal entre os círculos de cor
+                        runSpacing: 8.0, // Espaço vertical entre as linhas de círculos de cor
+                        children: colorOptions.map((color) {
+                          return GestureDetector(
+                            onTap: () {
+                              setDialogState(() {
+                                selectedColor = color;
+                              });
+                            },
+                            child: Container(
+                              width: 30,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: selectedColor == color ? Theme.of(context).colorScheme.onSurface : Colors.transparent,
+                                  width: 2.5,
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text("Cancel"),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                ElevatedButton(
+                  child: const Text("Add Category"),
+                  onPressed: () {
+                    if (nameController.text.isNotEmpty) {
+                      // Verifica se a categoria já existe (case-insensitive)
+                      if (_calendarDetails.any((detail) => detail.name.toLowerCase() == nameController.text.trim().toLowerCase())) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(backgroundColor: Colors.orangeAccent, content: Text("Category '${nameController.text.trim()}' already exists."))
+                        );
+                        return;
+                      }
+                      setState(() {
+                        _calendarDetails.add(CalendarDetailItem(
+                          name: nameController.text.trim(),
+                          color: selectedColor,
+                          isVisible: true,
+                        ));
+                      });
+                      Navigator.of(context).pop();
+                    } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(backgroundColor: Colors.redAccent, content: Text("Please enter a category name."))
+                        );
+                    }
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+
+  // Widget principal da página de agendamento.
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey.shade100, // Cor de fundo geral
+      body: Row( // Main layout is now a Row
+        children: [
+          const Sidebar(selected: 'Agenda'), // Added Sidebar
+          Expanded( // The original content is now Expanded
+            child: Column(
+              children: [
+                _buildTopBar(),
+                _buildMainContentRow(),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
