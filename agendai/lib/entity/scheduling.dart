@@ -8,6 +8,7 @@ class Scheduling {
   final String duracao;
   final String nomeEmpresa;
   final int idEmpresa;
+  final String nomeCliente;
 
   Scheduling({
     required this.id,
@@ -18,6 +19,7 @@ class Scheduling {
     required this.nomeServico,
     required this.duracao,
     required this.nomeEmpresa,
+    required this.nomeCliente,
     required this.idEmpresa,
   });
 
@@ -26,6 +28,7 @@ class Scheduling {
       id: json['id'],
       idCliente: json['idCliente'],
       idServico: json['idServico'],
+      nomeCliente: json['nomeCliente'],
       data: json['data'],
       horario: json['horario'],
       nomeServico: json['nomeServico'],
