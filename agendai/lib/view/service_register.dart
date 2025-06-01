@@ -33,24 +33,20 @@ class _ServiceRegisterState extends State<ServiceRegister> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const SizedBox(height: 24),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 500),
+                SizedBox(
+                  width: 400,
                   child: Padding(
                     padding: const EdgeInsets.all(24),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Icon(
-                          Icons.design_services,
-                          size: 200,
-                        ),
                         const Text(
-                          'Preencha as informações do serviço',
+                          'Informações do serviço',
+                          textAlign: TextAlign.left,
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
-                          textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 20),
                         TextFormField(

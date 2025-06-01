@@ -54,30 +54,32 @@ class AppTheme {
     // ),
 
     // TextField
-    inputDecorationTheme: const InputDecorationTheme(
-      contentPadding: EdgeInsets.symmetric(
+    inputDecorationTheme: InputDecorationTheme(
+      contentPadding: const EdgeInsets.symmetric(
         vertical: 10,
         horizontal: 15,
       ),
       filled: true,
-      fillColor: Color(0xFFFFFFFF),
-      labelStyle: TextStyle(
-        color: Colors.black,
+      fillColor: const Color(0xFFFFFFFF),
+      labelStyle: const TextStyle(
+        color: Colors.grey,
         fontSize: 16,
       ),
-      floatingLabelStyle: TextStyle(
-        color: Color(0xFF620096),
+      floatingLabelStyle: const TextStyle(
+        color: Colors.black,
       ),
-      border: OutlineInputBorder(),
+      border: const OutlineInputBorder(),
       enabledBorder: OutlineInputBorder(
-        borderSide: BorderSide(
-          color: Colors.black,
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(
+          color: Colors.grey,
           width: 1.0,
         ),
       ),
       focusedBorder: OutlineInputBorder(
-        borderSide: BorderSide(
-          color: Color(0xFF620096),
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(
+          color: Colors.black,
           width: 2.0,
         ),
       ),

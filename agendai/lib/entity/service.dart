@@ -22,4 +22,14 @@ class Servico {
       categoria: json['categoria'],
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'nome': nome,
+      'preco': preco,
+      'duracao': duracao,
+      'categoria': categoria,
+    };
+  }
 }
