@@ -1,6 +1,5 @@
 import 'package:agendai/presenter/servico_presenter.dart';
 import 'package:agendai/view/service_register.dart';
-import 'package:agendai/widgets/sidebar.dart';
 import 'package:agendai/widgets/testTable.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -14,6 +13,7 @@ class Service extends StatefulWidget {
 
 class _ServiceState extends State<Service> {
   late AnimationController _controller;
+  List<int> _selectedServiceIndices = [];
 
   @override
   void initState() {
@@ -41,7 +41,6 @@ class _ServiceState extends State<Service> {
     return Scaffold(
       body: Row(
         children: [
-          const Sidebar(selected: 'Serviços'),
           Expanded(
             // padding: const EdgeInsets.symmetric(horizontal: 30),
             child: Consumer<ServicePresenter>(
@@ -303,7 +302,7 @@ class _ServiceState extends State<Service> {
                                                   color: Colors.grey.shade400),
                                               const SizedBox(height: 16),
                                               const Text(
-                                                  'Nenhum funcionário encontrado.',
+                                                  'Nenhum serviço encontrado.',
                                                   style: TextStyle(
                                                       fontSize: 17,
                                                       color:
@@ -312,10 +311,41 @@ class _ServiceState extends State<Service> {
                                               ElevatedButton.icon(
                                                   icon: const Icon(Icons.add),
                                                   label: const Text(
-                                                      'Adicionar Funcionário'),
-                                                  onPressed: () {},
-                                                  // onPressed:
-                                                  //     _showAddEmployeeDialog,
+                                                      'Adicionar Serviço'),
+                                                  onPressed: () async {
+                                                    await showDialog(
+                                                      context: context,
+                                                      builder: (BuildContext
+                                                          context) {
+                                                        return AlertDialog(
+                                                          content:
+                                                              ConstrainedBox(
+                                                            constraints:
+                                                                BoxConstraints(
+                                                              maxHeight: MediaQuery.of(
+                                                                          context)
+                                                                      .size
+                                                                      .height *
+                                                                  0.8,
+                                                              maxWidth: 500,
+                                                            ),
+                                                            child:
+                                                                const SingleChildScrollView(
+                                                              child:
+                                                                  ServiceRegister(),
+                                                            ),
+                                                          ),
+                                                        );
+                                                      },
+                                                    );
+                                                    // final result = await Navigator.pushNamed(context, '/service');
+                                                    // if (result == true) {
+                                                    context
+                                                        .read<
+                                                            ServicePresenter>()
+                                                        .getServicos();
+                                                    //}
+                                                  },
                                                   style:
                                                       ElevatedButton.styleFrom(
                                                           foregroundColor:
@@ -333,28 +363,24 @@ class _ServiceState extends State<Service> {
                                               .map((item) => item.toMap())
                                               .toList();
 
-                                      final List<List<String>> tableData =
-                                          presenter.servicos.map((service) {
-                                        // Assuming Employee model has a status or you derive it
-                                        String status = service.id % 2 == 0
-                                            ? 'Active'
-                                            : 'Inactive'; // Mock status
-                                        return [
-                                          service.nome,
-                                          service.preco.toString(),
-                                          service.duracao,
-                                          service.categoria,
-                                        ];
-                                      }).toList();
+                                      // final camposParaRemover = [
+                                      //   'id',
+                                      //   'categoria'
+                                      // ];
+
+                                      // // Remover atributos específicos de cada item no dataMap
+                                      // for (var item in tabelaData) {
+                                      //   for (var campo in camposParaRemover) {
+                                      //     item.remove(campo);
+                                      //   }
+                                      // }
 
                                       return TestTable(
-                                        headers: tableHeaders,
-                                        data: tableData,
                                         dataMap: tabelaData,
                                         onSelectionChanged: (selectedIndices) {
                                           setState(() {
-                                            // _selectedEmployeeIndices =
-                                            //     selectedIndices;
+                                            _selectedServiceIndices =
+                                                selectedIndices;
                                           });
                                         },
                                         onEdit: (rowIndex) {
@@ -365,259 +391,40 @@ class _ServiceState extends State<Service> {
                                           // }
                                         },
                                         onDelete: (rowIndex) {
-                                          showDialog(
-                                            context: context,
-                                            builder: (BuildContext context) {
-                                              return AlertDialog(
-                                                title: const Text(
-                                                  'Confirmar exclusão',
-                                                ),
-                                                content: Text(
-                                                  'Tem certeza que deseja excluir o serviço "${presenter.servicos[rowIndex].nome}"?',
-                                                ),
-                                                actions: <Widget>[
-                                                  TextButton(
-                                                    child: const Text(
-                                                      'Cancelar',
-                                                      style: TextStyle(
-                                                        color: Colors.red,
-                                                      ),
-                                                    ),
-                                                    onPressed: () {
-                                                      Navigator.of(context)
-                                                          .pop();
-                                                    },
-                                                  ),
-                                                  ElevatedButton(
-                                                    onPressed: () {
-                                                      presenter.deleteServicos(
-                                                          presenter
-                                                              .servicos[
-                                                                  rowIndex]
-                                                              .id);
-                                                      Navigator.of(context)
-                                                          .pop();
-                                                    },
-                                                    child:
-                                                        const Text('Excluir'),
-                                                  ),
-                                                ],
-                                              );
+                                          final service = presenter.servicos
+                                              .where((service) =>
+                                                  service.id == rowIndex)
+                                              .first;
+
+                                          _confirmDeleteDialog(
+                                            context,
+                                            () async {
+                                              try {
+                                                await presenter
+                                                    .deleteServicos(service.id);
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(const SnackBar(
+                                                        content: Text(
+                                                            'Serviço excluído!'),
+                                                        backgroundColor:
+                                                            Colors.green));
+                                              } catch (e) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(SnackBar(
+                                                        content: Text(
+                                                            'Falha: ${e.toString()}'),
+                                                        backgroundColor:
+                                                            Colors.red));
+                                              }
                                             },
+                                            service.nome,
                                           );
-                                          // if (rowIndex <
-                                          //     presenter.funcionarios.length) {
-                                          //   final employee = presenter
-                                          //       .funcionarios[rowIndex];
-                                          //   _confirmDeleteDialog(context,
-                                          //       () async {
-                                          //     try {
-                                          //       await presenter.deleteEmployee(
-                                          //           id: employee.id);
-                                          //       ScaffoldMessenger.of(context)
-                                          //           .showSnackBar(const SnackBar(
-                                          //               content: Text(
-                                          //                   'Funcionário excluído!'),
-                                          //               backgroundColor:
-                                          //                   Colors.green));
-                                          //     } catch (e) {
-                                          //       ScaffoldMessenger.of(context)
-                                          //           .showSnackBar(SnackBar(
-                                          //               content: Text(
-                                          //                   'Falha: ${e.toString()}'),
-                                          //               backgroundColor:
-                                          //                   Colors.red));
-                                          //     }
-                                          //   }, employee.nome);
-                                          // }
                                         },
                                       );
                                     },
                                   ),
                                 ),
                               ),
-                              // Expanded(
-                              //   child: presenter.servicos.isEmpty
-                              //       ? const Center(
-                              //           child: Column(
-                              //             mainAxisAlignment:
-                              //                 MainAxisAlignment.center,
-                              //             crossAxisAlignment:
-                              //                 CrossAxisAlignment.center,
-                              //             children: [
-                              //               Icon(
-                              //                 Icons.search,
-                              //                 size: 50,
-                              //                 color: Colors.grey,
-                              //               ),
-                              //               SizedBox(height: 15),
-                              //               Text(
-                              //                 'Você não possui nenhum serviço listado',
-                              //                 style: TextStyle(
-                              //                   fontSize: 15,
-                              //                   color: Colors.grey,
-                              //                 ),
-                              //               ),
-                              //             ],
-                              //           ),
-                              //         )
-                              //       : GridView.count(
-                              //           crossAxisCount:
-                              //               MediaQuery.of(context).size.width >
-                              //                       1000
-                              //                   ? 7
-                              //                   : MediaQuery.of(context)
-                              //                               .size
-                              //                               .width >
-                              //                           600
-                              //                       ? 4
-                              //                       : 2,
-                              //           crossAxisSpacing: 10,
-                              //           mainAxisSpacing: 10,
-                              //           childAspectRatio: 1,
-                              //           children: List.generate(
-                              //             presenter.servicos.length,
-                              //             (index) {
-                              //               final servicos =
-                              //                   presenter.servicos[index];
-                              //               final id = servicos.id;
-                              //               final nome = servicos.nome;
-                              //               final preco = servicos.preco;
-                              //               final categoria =
-                              //                   servicos.categoria;
-                              //               final duracao = servicos.duracao;
-
-                              //               return Card(
-                              //                 color: const Color(0xFF6a00b0)
-                              //                     .withOpacity(
-                              //                         0.8 + (id % 5) * 0.05),
-                              //                 shape: RoundedRectangleBorder(
-                              //                   borderRadius:
-                              //                       BorderRadius.circular(15),
-                              //                 ),
-                              //                 elevation: 5,
-                              //                 child: Padding(
-                              //                   padding:
-                              //                       const EdgeInsets.all(12.0),
-                              //                   child: Column(
-                              //                     crossAxisAlignment:
-                              //                         CrossAxisAlignment.start,
-                              //                     children: [
-                              //                       Text(
-                              //                         nome,
-                              //                         style: const TextStyle(
-                              //                           fontSize: 16,
-                              //                           fontWeight:
-                              //                               FontWeight.bold,
-                              //                           color: Colors.white,
-                              //                         ),
-                              //                       ),
-                              //                       const SizedBox(height: 5),
-                              //                       Text(
-                              //                         categoria,
-                              //                         style: const TextStyle(
-                              //                           fontSize: 14,
-                              //                           color: Colors.white70,
-                              //                         ),
-                              //                       ),
-                              //                       const Spacer(),
-                              //                       Row(
-                              //                         mainAxisAlignment:
-                              //                             MainAxisAlignment
-                              //                                 .spaceBetween,
-                              //                         children: [
-                              //                           Column(
-                              //                             crossAxisAlignment:
-                              //                                 CrossAxisAlignment
-                              //                                     .start,
-                              //                             children: [
-                              //                               Text(
-                              //                                 'R\$ $preco',
-                              //                                 style:
-                              //                                     const TextStyle(
-                              //                                   color: Colors
-                              //                                       .white,
-                              //                                 ),
-                              //                               ),
-                              //                               Text(
-                              //                                 duracao,
-                              //                                 style:
-                              //                                     const TextStyle(
-                              //                                   color: Colors
-                              //                                       .white70,
-                              //                                 ),
-                              //                               ),
-                              //                             ],
-                              //                           ),
-                              //                           IconButton(
-                              //                             icon: const Icon(
-                              //                               Icons
-                              //                                   .delete_outline_sharp,
-                              //                               color: Colors.white,
-                              //                             ),
-                              //                             tooltip: "Deletar",
-                              //                             // onPressed: () {
-                              //                             //   //presenter.deleteServicos(id);
-
-                              //                             // },
-                              //                             onPressed: () {
-                              //                               showDialog(
-                              //                                 context: context,
-                              //                                 builder:
-                              //                                     (BuildContext
-                              //                                         context) {
-                              //                                   return AlertDialog(
-                              //                                     title:
-                              //                                         const Text(
-                              //                                       'Confirmar exclusão',
-                              //                                     ),
-                              //                                     content: Text(
-                              //                                       'Tem certeza que deseja excluir o serviço "$nome"?',
-                              //                                     ),
-                              //                                     actions: <Widget>[
-                              //                                       TextButton(
-                              //                                         child:
-                              //                                             const Text(
-                              //                                           'Cancelar',
-                              //                                           style:
-                              //                                               TextStyle(
-                              //                                             color:
-                              //                                                 Colors.red,
-                              //                                           ),
-                              //                                         ),
-                              //                                         onPressed:
-                              //                                             () {
-                              //                                           Navigator.of(context)
-                              //                                               .pop();
-                              //                                         },
-                              //                                       ),
-                              //                                       ElevatedButton(
-                              //                                         onPressed:
-                              //                                             () {
-                              //                                           presenter
-                              //                                               .deleteServicos(id);
-                              //                                           Navigator.of(context)
-                              //                                               .pop();
-                              //                                         },
-                              //                                         child: const Text(
-                              //                                             'Excluir'),
-                              //                                       ),
-                              //                                     ],
-                              //                                   );
-                              //                                 },
-                              //                               );
-                              //                             },
-                              //                           ),
-                              //                         ],
-                              //                       )
-                              //                     ],
-                              //                   ),
-                              //                 ),
-                              //               );
-                              //             },
-                              //           ),
-                              //         ),
-                              // ),
                             ],
                           ),
                         ),
@@ -630,6 +437,42 @@ class _ServiceState extends State<Service> {
           )
         ],
       ),
+    );
+  }
+
+  void _confirmDeleteDialog(
+      BuildContext context, VoidCallback onDeleteConfirmed, String itemName,
+      {bool multiple = false}) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Text(
+              multiple ? 'Confirmar Exclusão Múltipla' : 'Confirmar Exclusão'),
+          content: Text(multiple
+              ? 'Tem certeza que deseja excluir os $itemName serviço(s) selecionado(s)?'
+              : 'Tem certeza que deseja excluir o serviço "$itemName"?'),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+          actionsAlignment: MainAxisAlignment.spaceBetween,
+          actions: <Widget>[
+            TextButton(
+                child: const Text('Cancelar'),
+                onPressed: () => Navigator.of(dialogContext).pop()),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.delete_forever_outlined),
+              label: const Text('Excluir'),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red, foregroundColor: Colors.white),
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                onDeleteConfirmed();
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 }

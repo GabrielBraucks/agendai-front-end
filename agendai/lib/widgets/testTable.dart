@@ -1,27 +1,27 @@
 import 'package:flutter/material.dart';
 
 class TestTable extends StatefulWidget {
-  final List<String> headers;
-  final List<List<String>> data;
+  //final List<String> headers;
+  //final List<List<String>> data;
   final List<Map<String, dynamic>>? dataMap;
   final Function(List<int> selectedIndices)? onSelectionChanged;
   final Function(dynamic rowId)? onEdit;
   final Function(dynamic rowId)? onDelete;
-  final Map<String, double>? columnWidthsPercentages;
-  final Map<String, String>? columnLabels;
+  //final Map<String, double>? columnWidthsPercentages;
+  //final Map<String, String>? columnLabels;
   final bool showActions;
   final String idField;
 
   const TestTable({
     super.key,
-    required this.headers,
-    required this.data,
+    //required this.headers,
+    //required this.data,
     this.dataMap,
     this.onSelectionChanged,
     this.onEdit,
     this.onDelete,
-    this.columnWidthsPercentages,
-    this.columnLabels,
+    //this.columnWidthsPercentages,
+    // this.columnLabels,
     this.showActions = true,
     this.idField = 'id',
   });
@@ -37,27 +37,27 @@ class _TestTableState extends State<TestTable> {
   final int _sortColumnIndex = -1;
   final bool _isAscending = true;
 
-  @override
-  void initState() {
-    super.initState();
-    _initializeData();
-  }
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   _initializeData();
+  // }
 
   @override
-  void didUpdateWidget(TestTable oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.data != oldWidget.data || widget.headers != oldWidget.headers) {
-      _initializeData();
-    }
-  }
+  // void didUpdateWidget(TestTable oldWidget) {
+  //   super.didUpdateWidget(oldWidget);
+  //   if (widget.data != oldWidget.data || widget.headers != oldWidget.headers) {
+  //     _initializeData();
+  //   }
+  // }
 
-  void _initializeData() {
-    _internalData = List<List<String>>.from(
-        widget.data.map((row) => List<String>.from(row)));
-    _selectedRows = List<bool>.filled(_internalData.length, false);
-    _selectAll = false;
-    // _sortColumnIndex = -1; // Reset sort if data fundamentally changes
-  }
+  // void _initializeData() {
+  //   _internalData = List<List<String>>.from(
+  //       widget.data.map((row) => List<String>.from(row)));
+  //   _selectedRows = List<bool>.filled(_internalData.length, false);
+  //   _selectAll = false;
+  //   // _sortColumnIndex = -1; // Reset sort if data fundamentally changes
+  // }
 
   void _onSelectAll(bool? selected) {
     if (_internalData.isEmpty)
@@ -122,18 +122,80 @@ class _TestTableState extends State<TestTable> {
               sortAscending: _isAscending,
               sortColumnIndex:
                   _sortColumnIndex != -1 ? _sortColumnIndex + 1 : null,
-              columns: columns
-                  .map((col) => DataColumn(
-                        label: Text(widget.columnLabels?[col] ?? col),
-                      ))
-                  .toList(),
+              columns: [
+                ...columns.map((col) => DataColumn(
+                      label: Text(col),
+                    )),
+                if (widget.showActions)
+                  DataColumn(
+                    label: Container(
+                      width: 56,
+                      alignment: Alignment.center,
+                    ),
+                  ),
+              ],
               rows: widget.dataMap!.map((row) {
+                final rowId = row[widget.idField];
+                List<DataCell> cells = columns.map((col) {
+                  return DataCell(Text(row[col]?.toString() ?? ''));
+                }).toList();
+
+                if (widget.showActions) {
+                  cells.add(
+                    DataCell(
+                      SizedBox(
+                        width: 56,
+                        child: Container(
+                          alignment: Alignment.center,
+                          child: PopupMenuButton<String>(
+                            icon: Icon(
+                              Icons.more_vert,
+                              color: Colors.grey.shade600,
+                              size: 20,
+                            ),
+                            tooltip: "Ações",
+                            onSelected: (value) {
+                              if (value == 'edit' && widget.onEdit != null) {
+                                widget.onEdit!(rowId);
+                              } else if (value == 'delete' &&
+                                  widget.onDelete != null) {
+                                widget.onDelete!(rowId);
+                              }
+                            },
+                            itemBuilder: (BuildContext context) =>
+                                <PopupMenuEntry<String>>[
+                              const PopupMenuItem<String>(
+                                value: 'edit',
+                                child: Row(children: [
+                                  Icon(Icons.edit_outlined, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('Editar')
+                                ]),
+                              ),
+                              const PopupMenuItem<String>(
+                                value: 'delete',
+                                child: Row(children: [
+                                  Icon(Icons.delete_outline,
+                                      size: 18, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text('Excluir',
+                                      style: TextStyle(color: Colors.red))
+                                ]),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }
+
                 return DataRow(
-                  onSelectChanged: (selected) =>
-                      _onRowSelected(row['id'], selected),
-                  cells: columns.map((col) {
-                    return DataCell(Text(row[col]?.toString() ?? ''));
-                  }).toList(),
+                  onSelectChanged: (selected) => _onRowSelected(
+                    widget.dataMap!.indexOf(row),
+                    selected,
+                  ),
+                  cells: cells,
                 );
               }).toList(),
             ),

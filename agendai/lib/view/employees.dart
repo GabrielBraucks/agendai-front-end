@@ -1,7 +1,6 @@
 import 'package:agendai/entity/employee.dart';
 import 'package:agendai/presenter/employees_presenter.dart';
 import 'package:agendai/widgets/responsiveTable.dart';
-import 'package:agendai/widgets/sidebar.dart'; // Path to your ResponsiveTable
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -395,7 +394,6 @@ class _EmployeesState extends State<Employees> {
       backgroundColor: const Color(0xFFF7FAFC),
       body: Row(
         children: [
-          const Sidebar(selected: 'Funcionarios'), // Corrected selected item
           Expanded(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 0),

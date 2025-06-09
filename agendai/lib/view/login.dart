@@ -179,14 +179,7 @@ class _LoginState extends State<Login> {
     String password = passwordController.text;
     final result = await presenter.login(username: email, password: password);
     if (result) {
-      Navigator.pushNamed(context, '/service');
+      Navigator.pushNamed(context, '/home');
     }
-    //else {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     const SnackBar(
-    //       content: Text('Login inválido!'),
-    //     ),
-    //   );
-    // }
   }
 }

@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class Sidebar extends StatefulWidget {
   final String selected;
   final bool initiallyCollapsed;
+  final Function(String)? onNavigate;
 
   const Sidebar({
     super.key,
     this.selected = 'Clientes', // Default selected item
     this.initiallyCollapsed = false,
+    this.onNavigate,
   });
 
   @override
@@ -33,9 +35,11 @@ class _SidebarState extends State<Sidebar> {
   Widget build(BuildContext context) {
     // Define colors based on the new design
     const Color sidebarBackgroundColor = Color(0xFF0F1E54); // Dark blue
-    const Color selectedItemColor = Color(0xFF2C7BE5); // Lighter blue for selected
+    const Color selectedItemColor =
+        Color(0xFF2C7BE5); // Lighter blue for selected
     const Color iconAndTextColor = Colors.white;
-    const Color hoverColor = Color(0xFF1A357B); // Slightly lighter blue for hover
+    const Color hoverColor =
+        Color(0xFF1A357B); // Slightly lighter blue for hover
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -43,13 +47,17 @@ class _SidebarState extends State<Sidebar> {
       color: sidebarBackgroundColor,
       padding: EdgeInsets.symmetric(vertical: _isCollapsed ? 10 : 20),
       child: Column(
-        crossAxisAlignment: _isCollapsed ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+        crossAxisAlignment:
+            _isCollapsed ? CrossAxisAlignment.center : CrossAxisAlignment.start,
         children: [
           // Header: Logo and Toggle Button
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: _isCollapsed ? 0 : 20.0, vertical: 10.0),
+            padding: EdgeInsets.symmetric(
+                horizontal: _isCollapsed ? 0 : 20.0, vertical: 10.0),
             child: Row(
-              mainAxisAlignment: _isCollapsed ? MainAxisAlignment.center : MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: _isCollapsed
+                  ? MainAxisAlignment.center
+                  : MainAxisAlignment.spaceBetween,
               children: [
                 if (!_isCollapsed)
                   Row(
@@ -58,8 +66,10 @@ class _SidebarState extends State<Sidebar> {
                       Image.asset(
                         'assets/logo_leaf_white.png', // Replace with your actual asset path
                         height: 28,
-                        errorBuilder: (context, error, stackTrace) => 
-                          const Icon(Icons.eco, color: iconAndTextColor, size: 28), // Fallback icon
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(Icons.eco,
+                                color: iconAndTextColor,
+                                size: 28), // Fallback icon
                       ),
                       const SizedBox(width: 8),
                       const Text(
@@ -115,7 +125,8 @@ class _SidebarState extends State<Sidebar> {
                 ),
                 _buildNavItem(
                   context,
-                  icon: Icons.design_services_outlined, // Changed from Icons.design_services
+                  icon: Icons
+                      .design_services_outlined, // Changed from Icons.design_services
                   title: 'Serviços',
                   route: '/service',
                   selected: widget.selected == 'Serviços',
@@ -126,10 +137,12 @@ class _SidebarState extends State<Sidebar> {
                 ),
                 _buildNavItem(
                   context,
-                  icon: Icons.groups_outlined, // Changed from Icons.settings (or people)
+                  icon: Icons
+                      .groups_outlined, // Changed from Icons.settings (or people)
                   title: 'Funcionários',
                   route: '/employees',
-                  selected: widget.selected == 'Funcionarios', // Keep key consistent if used elsewhere
+                  selected: widget.selected ==
+                      'Funcionarios', // Keep key consistent if used elsewhere
                   isCollapsed: _isCollapsed,
                   selectedColor: selectedItemColor,
                   iconTextColor: iconAndTextColor,
@@ -146,7 +159,7 @@ class _SidebarState extends State<Sidebar> {
                   iconTextColor: iconAndTextColor,
                   hoverColor: hoverColor,
                 ),
-                 _buildNavItem(
+                _buildNavItem(
                   context,
                   icon: Icons.calendar_today_outlined,
                   title: 'Agendamento',
@@ -186,13 +199,15 @@ class _SidebarState extends State<Sidebar> {
           // User Profile Section
           if (!_isCollapsed) const Divider(color: Colors.white24, height: 1),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: _isCollapsed ? 0 : 16.0, vertical: 12.0),
+            padding: EdgeInsets.symmetric(
+                horizontal: _isCollapsed ? 0 : 16.0, vertical: 12.0),
             child: _isCollapsed
                 ? IconButton(
                     icon: const CircleAvatar(
                       // backgroundImage: AssetImage('assets/user_avatar.png'), // Replace with your asset
                       backgroundColor: Colors.white24,
-                      child: Icon(Icons.person_outline, color: iconAndTextColor),
+                      child:
+                          Icon(Icons.person_outline, color: iconAndTextColor),
                     ),
                     onPressed: () {
                       // TODO: Implement user profile action for collapsed state
@@ -205,7 +220,8 @@ class _SidebarState extends State<Sidebar> {
                         // backgroundImage: AssetImage('assets/user_avatar.png'), // Replace with your asset
                         backgroundColor: Colors.white24,
                         radius: 20,
-                        child: Icon(Icons.person_outline, color: iconAndTextColor, size: 22),
+                        child: Icon(Icons.person_outline,
+                            color: iconAndTextColor, size: 22),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -233,7 +249,8 @@ class _SidebarState extends State<Sidebar> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.more_vert, color: iconAndTextColor),
+                        icon: const Icon(Icons.more_vert,
+                            color: iconAndTextColor),
                         onPressed: () {
                           // TODO: Implement user settings menu
                         },
@@ -241,6 +258,47 @@ class _SidebarState extends State<Sidebar> {
                       ),
                     ],
                   ),
+          ),
+
+          // Logout Section
+          const SizedBox(height: 8),
+          if (!_isCollapsed) const Divider(color: Colors.white24, height: 1),
+          Padding(
+            padding: EdgeInsets.symmetric(
+                horizontal: _isCollapsed ? 0 : 16.0, vertical: 12.0),
+            child: InkWell(
+              onTap: () {
+                // TODO: Implement logout functionality
+                // For example: AuthService.logout() or Navigator.pushReplacementNamed(context, '/login')
+              },
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Row(
+                  mainAxisAlignment: _isCollapsed
+                      ? MainAxisAlignment.center
+                      : MainAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.logout,
+                      color: iconAndTextColor.withOpacity(0.9),
+                      size: 22,
+                    ),
+                    if (!_isCollapsed) ...[
+                      const SizedBox(width: 12),
+                      Text(
+                        'Sair',
+                        style: TextStyle(
+                          color: iconAndTextColor.withOpacity(0.9),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -262,7 +320,11 @@ class _SidebarState extends State<Sidebar> {
       color: selected ? selectedColor : Colors.transparent,
       child: InkWell(
         onTap: () {
-          if (ModalRoute.of(context)?.settings.name != route) {
+          if (widget.onNavigate != null) {
+            // Use the callback if provided
+            widget.onNavigate!(title);
+          } else if (ModalRoute.of(context)?.settings.name != route) {
+            // Otherwise use Navigator as before
             Navigator.pushReplacementNamed(context, route);
           }
         },
@@ -278,18 +340,22 @@ class _SidebarState extends State<Sidebar> {
             color: selected ? selectedColor : Colors.transparent,
           ),
           child: Row(
-            mainAxisAlignment: isCollapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+            mainAxisAlignment: isCollapsed
+                ? MainAxisAlignment.center
+                : MainAxisAlignment.start,
             children: [
               Icon(icon, color: iconTextColor, size: 24),
               if (!isCollapsed) ...[
                 const SizedBox(width: 16),
-                Expanded( // Added Expanded here
+                Expanded(
+                  // Added Expanded here
                   child: Text(
                     title,
                     style: TextStyle(
                       color: iconTextColor,
                       fontSize: 14.5,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                      fontWeight:
+                          selected ? FontWeight.w600 : FontWeight.normal,
                     ),
                     overflow: TextOverflow.ellipsis, // Prevent text overflow
                   ),
