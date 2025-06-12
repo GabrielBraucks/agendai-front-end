@@ -115,6 +115,7 @@ class _ResponsiveTableState extends State<ResponsiveTable> {
   void _onRowSelected(int index, bool? selected) {
     if (index < 0 || index >= _selectedRows.length) return; // Bounds check
     setState(() {
+    print(_selectedRows);
       _selectedRows[index] = selected ?? false;
       if (_internalData.isNotEmpty) {
         _selectAll = _selectedRows.every((isSelected) => isSelected);
@@ -197,7 +198,7 @@ class _ResponsiveTableState extends State<ResponsiveTable> {
                   (states) => const Color(0xFFF0F4F8)), 
               
               sortAscending: _isAscending,
-              sortColumnIndex: _sortColumnIndex != -1 ? _sortColumnIndex + 1 : null, 
+              sortColumnIndex: _sortColumnIndex != -1 ? _sortColumnIndex + 1 : null,
               
               columns: _buildColumns(),
               rows: _buildRows(),
@@ -211,21 +212,21 @@ class _ResponsiveTableState extends State<ResponsiveTable> {
   List<DataColumn> _buildColumns() {
     List<DataColumn> columns = [];
 
-    columns.add(
-      DataColumn(
-        label: Padding(
-          padding: const EdgeInsets.only(left: 12.0, right: 4.0), 
-          child: Checkbox(
-            visualDensity: VisualDensity.compact,
-            value: _selectAll,
-            // Disable checkbox if there is no data to select
-            onChanged: _internalData.isNotEmpty ? _onSelectAll : null, 
-            activeColor: Theme.of(context).primaryColor,
-            side: BorderSide(color: Colors.grey.shade400),
-          ),
-        ),
-      ),
-    );
+    // columns.add(
+    //   DataColumn(
+    //     label: Padding(
+    //       padding: const EdgeInsets.only(left: 12.0, right: 4.0), 
+    //       child: Checkbox(
+    //         visualDensity: VisualDensity.compact,
+    //         value: _selectAll,
+    //         // Disable checkbox if there is no data to select
+    //         onChanged: _internalData.isNotEmpty ? _onSelectAll : null, 
+    //         activeColor: Theme.of(context).primaryColor,
+    //         side: BorderSide(color: Colors.grey.shade400),
+    //       ),
+    //     ),
+    //   ),
+    // );
 
     for (int i = 0; i < widget.headers.length; i++) {
       final headerText = widget.headers[i];
@@ -304,20 +305,20 @@ class _ResponsiveTableState extends State<ResponsiveTable> {
   List<DataCell> _buildCellsForRow(List<String> rowData, int rowIndex, bool currentIsSelected) {
     List<DataCell> cells = [];
     
-    cells.add(
-      DataCell(
-        Padding(
-          padding: const EdgeInsets.only(left:12.0, right: 4.0),
-          child: Checkbox(
-            visualDensity: VisualDensity.compact,
-            value: currentIsSelected, // Use passed currentIsSelected for reliability
-            onChanged: (selected) => _onRowSelected(rowIndex, selected),
-            activeColor: Theme.of(context).primaryColor,
-            side: BorderSide(color: Colors.grey.shade400),
-          ),
-        ),
-      ),
-    );
+    // cells.add(
+    //   DataCell(
+    //     Padding(
+    //       padding: const EdgeInsets.only(left:12.0, right: 4.0),
+    //       child: Checkbox(
+    //         visualDensity: VisualDensity.compact,
+    //         value: currentIsSelected, // Use passed currentIsSelected for reliability
+    //         onChanged: (selected) => _onRowSelected(rowIndex, selected),
+    //         activeColor: Theme.of(context).primaryColor,
+    //         side: BorderSide(color: const Color.fromARGB(255, 126, 46, 46)),
+    //       ),
+    //     ),
+    //   ),
+    // );
 
     for (int j = 0; j < widget.headers.length; j++) {
       final cellData = (j < rowData.length) ? rowData[j] : ''; 

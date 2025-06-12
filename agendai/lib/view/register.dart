@@ -19,158 +19,206 @@ class _RegisterState extends State<Register> {
   bool _obscureConfirmPassword = true;
 
   @override
+  void dispose() {
+    employerIdentificationController.dispose();
+    employernameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF620096)),
-      ),
-      body: Consumer<RegisterPresenter>(
-        builder: (context, presenter, child) {
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              double width = constraints.maxWidth;
-              return SingleChildScrollView(
+      backgroundColor: const Color(0xFFF0F2F5), // A soft, neutral background
+      body: Center(
+        child: Consumer<RegisterPresenter>(
+          builder: (context, presenter, child) {
+            if (presenter.loadingRegister) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            return SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
                 child: Center(
                   child: Container(
-                    width: width < 600 ? width * 0.9 : 450,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Center(
-                          child: Icon(
-                            Icons.account_balance_rounded,
-                            size: 48,
-                            color: Color(0xFF620096),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        const Center(
-                          child: Text(
-                            'Vamos começar!',
-                            style: TextStyle(
-                              color: Color(0xFF620096),
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        const Center(
-                          child: Text(
-                            'Crie sua conta para continuar',
-                            style: TextStyle(
-                              color: Colors.black54,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 40),
-                        _buildTextField(
-                          controller: employerIdentificationController,
-                          label: 'CNPJ',
-                          icon: Icons.business,
-                        ),
-                        const SizedBox(height: 20),
-                        _buildTextField(
-                          controller: employernameController,
-                          label: 'Nome da empresa',
-                          icon: Icons.store,
-                        ),
-                        const SizedBox(height: 20),
-                        _buildTextField(
-                          controller: emailController,
-                          label: 'Email para contato',
-                          icon: Icons.email,
-                          keyboardType: TextInputType.emailAddress,
-                        ),
-                        const SizedBox(height: 20),
-                        _buildPasswordField(
-                          controller: passwordController,
-                          label: 'Senha',
-                          isObscured: _obscurePassword,
-                          toggleObscure: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 20),
-                        _buildPasswordField(
-                          controller: confirmPasswordController,
-                          label: 'Confirmar senha',
-                          isObscured: _obscureConfirmPassword,
-                          toggleObscure: () {
-                            setState(() {
-                              _obscureConfirmPassword = !_obscureConfirmPassword;
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 40),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 54,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF620096),
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            onPressed: () {
-                              if (passwordController.text ==
-                                  confirmPasswordController.text) {
-                                register(presenter);
-                              } else {
-                                _showErrorSnackBar('Senhas não coincidem!');
-                              }
-                            },
-                            child: const Text(
-                              'CADASTRAR',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.2,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text(
-                              'Já possui uma conta? ',
-                              style: TextStyle(color: Colors.black54),
-                            ),
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.pop(context);
-                              },
-                              child: const Text(
-                                'Faça login',
-                                style: TextStyle(
-                                  color: Color(0xFF620096),
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
+                    width: 1100, // Max width for the card
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
                         ),
                       ],
                     ),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        if (constraints.maxWidth > 800) {
+                          // Desktop layout
+                          return Row(
+                            children: [
+                              _buildBrandingSide(),
+                              Expanded(
+                                child: _buildRegisterForm(presenter),
+                              ),
+                            ],
+                          );
+                        } else {
+                          // Mobile layout
+                          return _buildRegisterForm(presenter);
+                        }
+                      },
+                    ),
                   ),
                 ),
-              );
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBrandingSide() {
+    return Expanded(
+      child: Container(
+        color: const Color(0xFF6366F1), // Primary brand color
+        padding: const EdgeInsets.all(48.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Icon(Icons.event_available_rounded, color: Colors.white, size: 60),
+            const SizedBox(height: 24),
+            const Text(
+              'Crie sua Conta',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 42,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                fontFamily: 'Inter',
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Comece a organizar seu negócio hoje mesmo.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.white.withOpacity(0.85),
+                fontFamily: 'Inter',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRegisterForm(RegisterPresenter presenter) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 48.0, vertical: 40.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Vamos Começar!',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1A202C),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Preencha os dados para se cadastrar.',
+            style: TextStyle(fontSize: 16, color: Color(0xFF718096)),
+          ),
+          const SizedBox(height: 32),
+          _buildTextField(
+            controller: employernameController,
+            label: 'Nome da Empresa',
+            icon: Icons.store_mall_directory_outlined,
+          ),
+          const SizedBox(height: 16),
+          _buildTextField(
+            controller: employerIdentificationController,
+            label: 'CNPJ',
+            icon: Icons.business_center_outlined,
+          ),
+          const SizedBox(height: 16),
+          _buildTextField(
+            controller: emailController,
+            label: 'E-mail de Contato',
+            icon: Icons.alternate_email_rounded,
+            keyboardType: TextInputType.emailAddress,
+          ),
+          const SizedBox(height: 16),
+          _buildPasswordField(
+            controller: passwordController,
+            label: 'Senha',
+            isObscured: _obscurePassword,
+            toggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
+          ),
+          const SizedBox(height: 16),
+          _buildPasswordField(
+            controller: confirmPasswordController,
+            label: 'Confirmar Senha',
+            isObscured: _obscureConfirmPassword,
+            toggleObscure: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+          ),
+          // if (presenter.errorMessage != null) ...[
+          //   const SizedBox(height: 12),
+          //   Text(
+          //     presenter.errorMessage!,
+          //     textAlign: TextAlign.center,
+          //     style: TextStyle(color: Colors.red.shade700, fontSize: 14),
+          //   ),
+          // ],
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () {
+              if (passwordController.text == confirmPasswordController.text) {
+                register(presenter);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text('As senhas não coincidem!'),
+                  backgroundColor: Colors.red,
+                ));
+              }
             },
-          );
-        },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF6366F1),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 18),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 2,
+              shadowColor: const Color(0xFF6366F1).withOpacity(0.4),
+            ),
+            child: const Text('CADASTRAR', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('Já possui uma conta?', style: TextStyle(color: Color(0xFF718096))),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'Faça login',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF6366F1)),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -184,22 +232,19 @@ class _RegisterState extends State<Register> {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.black87),
       decoration: InputDecoration(
-        prefixIcon: Icon(icon, color: Colors.black54),
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.black54),
-        enabledBorder: OutlineInputBorder(
+        prefixIcon: Icon(icon, color: const Color(0xFF718096)),
+        border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.black12, width: 1),
+          borderSide: const BorderSide(color: Color(0xFFCBD5E0)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF620096), width: 2),
+          borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
         ),
         filled: true,
-        fillColor: Colors.grey.shade50,
-        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+        fillColor: const Color(0xFFF7FAFC),
       ),
     );
   }
@@ -208,94 +253,51 @@ class _RegisterState extends State<Register> {
     required TextEditingController controller,
     required String label,
     required bool isObscured,
-    required Function toggleObscure,
+    required VoidCallback toggleObscure,
   }) {
     return TextField(
       controller: controller,
       obscureText: isObscured,
-      style: const TextStyle(color: Colors.black87),
       decoration: InputDecoration(
-        prefixIcon: const Icon(Icons.lock, color: Colors.black54),
-        suffixIcon: IconButton(
-          icon: Icon(
-            isObscured ? Icons.visibility : Icons.visibility_off,
-            color: Colors.black54,
-          ),
-          onPressed: () => toggleObscure(),
-        ),
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.black54),
-        enabledBorder: OutlineInputBorder(
+        prefixIcon: const Icon(Icons.lock_outline_rounded, color: Color(0xFF718096)),
+        suffixIcon: IconButton(
+          onPressed: toggleObscure,
+          icon: Icon(
+            isObscured ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+            color: const Color(0xFF718096),
+          ),
+        ),
+        border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.black12, width: 1),
+          borderSide: const BorderSide(color: Color(0xFFCBD5E0)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF620096), width: 2),
+          borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
         ),
         filled: true,
-        fillColor: Colors.grey.shade50,
-        contentPadding: const EdgeInsets.symmetric(vertical: 16),
-      ),
-    );
-  }
-
-  void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.redAccent,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-        margin: const EdgeInsets.all(16),
+        fillColor: const Color(0xFFF7FAFC),
       ),
     );
   }
 
   Future<void> register(RegisterPresenter presenter) async {
-    String employerIdentification = employerIdentificationController.text;
-    String employername = employernameController.text;
-    String email = emailController.text;
-    String password = passwordController.text;
-    
-    // Mostrar indicador de carregamento
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFF620096),
-        ),
-      ),
-    );
-    
     final result = await presenter.register(
-      employerIdentification: employerIdentification,
-      employername: employername,
-      email: email,
-      password: password,
+      employerIdentification: employerIdentificationController.text,
+      employername: employernameController.text,
+      email: emailController.text,
+      password: passwordController.text,
     );
-    
-    // Fechar indicador de carregamento
-    Navigator.pop(context);
-    
-    if (result) {
+    if (result && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Cadastro bem-sucedido!'),
+        const SnackBar(
+          content: Text('Cadastro realizado com sucesso!'),
           backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          margin: const EdgeInsets.all(16),
         ),
       );
-      Navigator.pop(context);
-    } else {
-      _showErrorSnackBar('Cadastro inválido!');
+      Navigator.pop(context); // Go back to the login screen
     }
+    // Error messages are handled by the Consumer
   }
 }

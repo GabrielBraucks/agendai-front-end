@@ -1,3 +1,4 @@
+import 'package:agendai/widgets/sidebar.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -5,91 +6,6 @@ import 'package:intl/intl.dart';
 // import 'sidebar_widget.dart'; // Descomente se você tiver o Sidebar em um arquivo separado
 
 // Placeholder Sidebar Widget (se não estiver importando de outro arquivo)
-class Sidebar extends StatelessWidget {
-  final String selected;
-  const Sidebar({super.key, required this.selected});
-
-  @override
-  Widget build(BuildContext context) {
-    // Uma representação simples de uma barra lateral
-    return Container(
-      width: 250, // Largura padrão da barra lateral
-      color: Colors.grey.shade200, // Cor de fundo de exemplo
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch, // Faz os filhos ocuparem a largura total
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              "Salão de Beleza", // Nome do App Placeholder
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.grey.shade800),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          const Divider(height: 1),
-          Expanded( // Permite que a lista role se os itens excederem a altura disponível
-            child: ListView(
-              padding: EdgeInsets.zero, // Remove o preenchimento padrão do ListView
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.dashboard_outlined),
-                  title: const Text('Dashboard'),
-                  selected: selected == 'Dashboard',
-                  selectedTileColor: Colors.indigo.withOpacity(0.1),
-                  selectedColor: Colors.indigo.shade700,
-                  onTap: () {
-                    // Lógica de navegação para Dashboard
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.calendar_today_outlined),
-                  title: const Text('Agenda'),
-                  selected: selected == 'Agenda',
-                  selectedTileColor: Colors.indigo.withOpacity(0.1),
-                  selectedColor: Colors.indigo.shade700,
-                  onTap: () {
-                    // Lógica de navegação para Agenda
-                    // Exemplo: Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => SchedulingPage()));
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.content_cut_outlined),
-                  title: const Text('Serviços'),
-                  selected: selected == 'Serviços',
-                  selectedTileColor: Colors.indigo.withOpacity(0.1),
-                  selectedColor: Colors.indigo.shade700,
-                  onTap: () {
-                    // Lógica de navegação para Serviços
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.people_outline),
-                  title: const Text('Clientes'),
-                  selected: selected == 'Clientes',
-                  selectedTileColor: Colors.indigo.withOpacity(0.1),
-                  selectedColor: Colors.indigo.shade700,
-                  onTap: () {
-                    // Lógica de navegação para Clientes
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.settings_outlined),
-                  title: const Text('Configurações'),
-                  selected: selected == 'Configurações',
-                  selectedTileColor: Colors.indigo.withOpacity(0.1),
-                  selectedColor: Colors.indigo.shade700,
-                  onTap: () {
-                    // Lógica de navegação para Configurações
-                  },
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 
 class Appointment {
@@ -106,14 +22,14 @@ class Appointment {
   });
 }
 
-class DashboardPage extends StatefulWidget {
-  const DashboardPage({super.key});
+class Dashboard extends StatefulWidget {
+  const Dashboard({super.key});
 
   @override
-  State<DashboardPage> createState() => _DashboardPageState();
+  State<Dashboard> createState() => _DashboardState();
 }
 
-class _DashboardPageState extends State<DashboardPage> {
+class _DashboardState extends State<Dashboard> {
   // Dados de exemplo
   final int _appointmentsToday = 7;
   final double _totalRevenueToday = 350.75;

@@ -1,4 +1,5 @@
 import 'package:agendai/presenter/home_presenter.dart';
+import 'package:agendai/view/dashboard.dart';
 import 'package:agendai/view/employees.dart';
 import 'package:agendai/view/scheduling.dart';
 import 'package:agendai/view/service.dart';
@@ -42,7 +43,7 @@ class _HomeState extends State<Home> {
   Widget _getSelectedWidget() {
     switch (selectedIndex) {
       case 0:
-        return const Scheduling();
+        return const Dashboard();
       case 1:
         return const Service();
       case 2:

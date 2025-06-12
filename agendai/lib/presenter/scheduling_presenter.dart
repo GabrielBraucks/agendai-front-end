@@ -9,37 +9,62 @@ class SchedulingPresenter extends ChangeNotifier {
 
   SchedulingPresenter({required this.api});
 
-  Future<void> createScheduling({
-    required int idService,
-    required String date, // "2025-10-10"
-    required String time, // "14:30:00"
-    required String email,
-    required String cpf,
-    required String name,
-    required String celPhone,
-  }) async {
+  Future<void> createScheduling(
+      {required int idService,
+      required int idCliente,
+      required int idFuncionario,
+      required String date, // "2025-10-10"
+      required String time // "14:30:00"
+      }) async {
     loadingScheduling = true;
     notifyListeners();
-    await api.registerScheduleWithNewClient(
-      idService: idService,
-      date: date,
-      time: time,
-      email: email,
-      cpf: cpf,
-      name: name,
-      celPhone: celPhone,
-    );
-    loadingScheduling = false;
+
+    try {
+      // Combina a data e a hora e converte para ISO 8601
+      final isoDateTime =
+          DateTime.parse('$date $time').toUtc().toIso8601String();
+
+      await api.registerSchedule(
+        idCliente: idCliente,
+        idFuncionario: idFuncionario,
+        idService: idService,
+        date: isoDateTime.split('T')[0],
+        time: isoDateTime.split('T')[1].substring(0, 8),
+      );
+      
+      await getScheduling();
+    } finally {
+      loadingScheduling = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteScheduling(int id) async {
+    loadingScheduling = true;
     notifyListeners();
+
+    try {
+      final success = await api.deleteScheduling(id);
+      if (success) {
+        // Remove o agendamento da lista local para atualizar a UI
+        scheduling.removeWhere((item) => item.id == id);
+      }
+    } finally {
+      loadingScheduling = false;
+      notifyListeners();
+    }
   }
 
   Future<List<Scheduling>> getScheduling() async {
     loadingScheduling = true;
     notifyListeners();
-    List<Scheduling> todos = await api.getScheduling();
-    scheduling = todos;
-    loadingScheduling = false;
-    notifyListeners();
-    return todos;
+    try {
+      List<Scheduling> todos = await api.getScheduling();
+      scheduling = todos;
+      return todos;
+    } finally {
+      loadingScheduling = false;
+      notifyListeners();
+    }
   }
 }

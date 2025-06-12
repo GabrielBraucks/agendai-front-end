@@ -1,4 +1,5 @@
 import 'package:agendai/model/agendai_api.dart';
+import 'package:agendai/presenter/connect_presenter.dart';
 import 'package:agendai/presenter/customer_presenter.dart';
 import 'package:agendai/presenter/employees_presenter.dart';
 import 'package:agendai/presenter/employees_register_presenter.dart';
@@ -8,6 +9,7 @@ import 'package:agendai/presenter/register_presenter.dart';
 import 'package:agendai/presenter/scheduling_presenter.dart';
 import 'package:agendai/presenter/servico_presenter.dart';
 import 'package:agendai/presenter/splash_presenter.dart';
+import 'package:agendai/view/connect.dart';
 import 'package:agendai/view/customers.dart';
 import 'package:agendai/view/dashboard.dart';
 import 'package:agendai/view/employees.dart';
@@ -34,6 +36,7 @@ void main() {
         // Fornece o AgendApi para todos os presenters
         providers: [
           ChangeNotifierProvider(create: (_) => LoginPresenter(api: api)),
+          ChangeNotifierProvider(create: (_) => ConnectPresenter(api: api)),
           ChangeNotifierProvider(create: (_) => HomePresenter(api: api)),
           ChangeNotifierProvider(create: (_) => SplashPresenter(api: api)),
           ChangeNotifierProvider(create: (_) => RegisterPresenter(api: api)),
@@ -76,9 +79,10 @@ class MyApp extends StatelessWidget {
         '/': (_) => const Splash(),
         '/login': (context) => const Login(),
         '/register': (context) => const Register(),
-        '/home': (context) => const Home(),
+        '/home': (context) => const Scheduling(),
         '/service': (context) => const Service(),
         '/customers': (context) => const Customers(),
+        '/connections': (context) => const Connect(),
         '/dashboard': (context) => const Dashboard(),
         '/service-register': (context) => const ServiceRegister(),
         '/employees': (context) => const Employees(),

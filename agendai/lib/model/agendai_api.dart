@@ -6,6 +6,7 @@ import 'package:agendai/entity/scheduling.dart';
 import 'package:agendai/entity/service.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AgendaiApi {
   final String baseUrl = 'http://127.0.0.1:3333';
@@ -13,7 +14,7 @@ class AgendaiApi {
   String? _jwtToken;
   int? _idEnterprise;
 
-  // Getter para o token
+  // Getter for the token
   String? get jwtToken => _jwtToken;
   int? get idEnterprise => _idEnterprise;
   AgendaiApi() {
@@ -395,6 +396,40 @@ class AgendaiApi {
     }
   }
 
+  Future<void> registerSchedule(
+      {required int idService,
+      required int idCliente,
+      required int idFuncionario,
+      required String date, // "2025-10-10"
+      required String time // "14:30:00"
+      }) async {
+    if (_jwtToken == null) {
+      throw Exception('Usuário não autenticado.');
+    }
+
+    final url = Uri.parse('$baseUrl/agenda_empresa');
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $_jwtToken',
+      },
+      body: jsonEncode({
+        "idCliente": idCliente,
+        "idServico": idService,
+        "idFuncionario": idFuncionario,
+        "data": date,
+        "horario": time
+      }),
+    );
+
+    if (response.statusCode == 201) {
+      print('Agendamento criado com sucesso!');
+    } else {
+      throw Exception('Falha ao criar agendamento: ${response.body}');
+    }
+  }
+
   Future<List<Scheduling>> getScheduling() async {
     _jwtToken = await getToken();
     _idEnterprise = await getId();
@@ -419,6 +454,22 @@ class AgendaiApi {
       return responseData;
     } else {
       throw Exception('Falha ao listar agendamentos: ${response.body}');
+    }
+  }
+
+  Future<bool> deleteScheduling(int id) async {
+    final headers = await _getHeaders();
+    final url = Uri.parse('$baseUrl/agenda_empresa/$id');
+    final response = await http.delete(url, headers: headers);
+
+    // Assumindo que 200 ou 204 (No Content) são respostas de sucesso para delete
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      print('Agendamento deletado com sucesso!');
+      return true;
+    } else {
+      print(
+          'Falha ao deletar agendamento: ${response.statusCode} ${response.body}');
+      throw Exception('Falha ao deletar agendamento: ${response.body}');
     }
   }
 
@@ -567,6 +618,33 @@ class AgendaiApi {
       print(
           'Falha ao deletar cliente interno: ${response.statusCode} ${response.body}');
       throw Exception('Falha ao deletar cliente interno: ${response.body}');
+    }
+  }
+
+  void redirectToExternalUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      throw 'Não foi possível abrir $url';
+    }
+  }
+
+  Future<void> launchGoogleAuth() async {
+    final stateData = {'empresaId': 3, 'token': _jwtToken};
+
+    final jsonState = jsonEncode(stateData);
+    final base64State = base64.encode(utf8.encode(jsonState));
+    final encodedState = Uri.encodeComponent(base64State);
+    final url = Uri.parse('$baseUrl/conexao/google?token=$_jwtToken&empresaId=$_idEnterprise');
+
+    if (await canLaunchUrl(url)) {
+      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+        throw Exception(
+            'Não foi possível abrir a página de autenticação: $url');
+      }
+    } else {
+      throw Exception('URL de autenticação inválida: $url');
     }
   }
 }
