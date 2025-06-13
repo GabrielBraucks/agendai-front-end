@@ -106,11 +106,13 @@ class _SchedulingState extends State<Scheduling> {
     await customerPresenter.fetchInternalCustomers();
     await employeePresenter.getEmployees();
 
-    setState(() {
-      _services = servicePresenter.servicos;
-      _customers = customerPresenter.internalCustomers;
-      _employees = employeePresenter.funcionarios;
-    });
+    if(mounted) {
+      setState(() {
+        _services = servicePresenter.servicos;
+        _customers = customerPresenter.internalCustomers;
+        _employees = employeePresenter.funcionarios;
+      });
+    }
   }
 
 
@@ -124,7 +126,6 @@ class _SchedulingState extends State<Scheduling> {
     for (var agendamento in presenter.scheduling) {
       addSchedulingEvent(agendamento);
     }
-    // No need to call setState here as eventsController updates should trigger UI changes
   }
 
   /// Adiciona um agendamento como evento no calendário
@@ -151,22 +152,11 @@ class _SchedulingState extends State<Scheduling> {
   ViewConfiguration get _currentViewConfiguration {
     switch (_currentViewType) {
       case CalendarViewType.month:
-        return MonthViewConfiguration.singleMonth(
-            // You can customize month view options here if needed
-            // e.g., showWeekNumbers: true,
-            );
+        return MonthViewConfiguration.singleMonth();
       case CalendarViewType.week:
-        return MultiDayViewConfiguration.week(
-            // You can customize week view options here
-            // e.g., timelineStartsAt: const Duration(hours: 8),
-            // timelineEndsAt: const Duration(hours: 22),
-            );
+        return MultiDayViewConfiguration.week();
       case CalendarViewType.day:
-        return MultiDayViewConfiguration.singleDay(
-            // You can customize day view options here
-            // e.g., timelineStartsAt: const Duration(hours: 8),
-            // timelineEndsAt: const Duration(hours: 22),
-            );
+        return MultiDayViewConfiguration.singleDay();
       default:
         return MonthViewConfiguration.singleMonth();
     }
@@ -211,7 +201,6 @@ class _SchedulingState extends State<Scheduling> {
                     )
                   : const Text('Agenda'), // Use a placeholder title initially.
               actions: [
-                // Button to go to Today
                 IconButton(
                   icon: const Icon(Icons.today),
                   tooltip: 'Hoje',
@@ -219,12 +208,11 @@ class _SchedulingState extends State<Scheduling> {
                     calendarController.animateToDate(DateTime.now());
                   },
                 ),
-                // Buttons for changing view type
                 IconButton(
                   icon: const Icon(Icons.view_module), // Icon for Month View
                   tooltip: 'Mês',
                   color: _currentViewType == CalendarViewType.month
-                      ? Theme.of(context).colorScheme.primary
+                      ? Colors.indigo
                       : null,
                   onPressed: () {
                     if (_currentViewType != CalendarViewType.month) {
@@ -292,29 +280,32 @@ class _SchedulingState extends State<Scheduling> {
                   icon: const Icon(Icons.add),
                   tooltip: 'Novo Agendamento',
                   onPressed: () {
-                    _showAddEventDialog();
+                    _showAddOrUpdateEventDialog();
                   },
                 ),
               ],
             ),
             body: Padding(
-              padding: const EdgeInsets.all(
-                  8), // Reduced padding for potentially denser views
-              child:
-                  Consumer<SchedulingPresenter>(builder: (context, presenter, child) {
+              padding: const EdgeInsets.all(8),
+              child: Consumer<SchedulingPresenter>(builder: (context, presenter, child) {
+                // The calendar should rebuild when scheduling data changes.
+                // Re-calculating events here when presenter notifies listeners.
+                eventsController.clearEvents();
+                for (var agendamento in presenter.scheduling) {
+                  addSchedulingEvent(agendamento);
+                }
+
                 if (presenter.loadingScheduling && eventsController.events.isEmpty) {
-                  // Show loader only if events are empty
                   return const Center(child: CircularProgressIndicator());
                 }
+                
                 return CalendarView(
                   eventsController: eventsController,
                   calendarController: calendarController,
-                  viewConfiguration:
-                      _currentViewConfiguration, // Use dynamic view configuration
+                  viewConfiguration: _currentViewConfiguration,
                   callbacks: CalendarCallbacks(
                     onEventCreated: (event) => eventsController.addEvent(event),
                     onTapped: (date) {
-                      // Example: if in month view, switch to day view for the tapped date
                       if (_currentViewType == CalendarViewType.month) {
                         setState(() {
                           _currentViewType = CalendarViewType.day;
@@ -323,7 +314,6 @@ class _SchedulingState extends State<Scheduling> {
                       }
                     },
                     onEventTapped: (event, anEventInstance) {
-                      // When an event is tapped, show the details dialog.
                       final scheduling = event.data;
                       if (scheduling != null) {
                         _showSchedulingDetailsDialog(scheduling as entity.Scheduling);
@@ -346,7 +336,6 @@ class _SchedulingState extends State<Scheduling> {
     ));
   }
   
-  /// Shows a dialog with the scheduling details and a delete button.
   void _showSchedulingDetailsDialog(entity.Scheduling scheduling) {
     showDialog(
       context: context,
@@ -360,9 +349,9 @@ class _SchedulingState extends State<Scheduling> {
                 Text('Cliente: ${scheduling.nomeCliente}'),
                 Text('Funcionário: ${scheduling.nomeFuncionario}'),
                 Text('Empresa: ${scheduling.nomeEmpresa}'),
-                Text('Data: ${_formatDate(scheduling.data)}'),
-                Text('Início: ${_formatTimeFromDateTimeString(scheduling.inicio)}'),
-                Text('Fim: ${_formatTimeFromDateTimeString(scheduling.fim)}'),
+                Text('Data: ${_formatDateISO(scheduling.inicio)}'),
+                Text('Início: ${_formatTimeFromDateTimeISOString(scheduling.inicio)}'),
+                Text('Fim: ${_formatTimeFromDateTimeISOString(scheduling.fim)}'),
                 Text('Duração: ${_formatDuration(scheduling.duracao)}'),
               ],
             ),
@@ -370,23 +359,27 @@ class _SchedulingState extends State<Scheduling> {
           actions: <Widget>[
             TextButton(
               child: const Text('Fechar'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            // NEW: Edit Button
+            TextButton(
+              child: const Text('Editar'),
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.of(context).pop(); // Close details dialog
+                _showAddOrUpdateEventDialog(scheduling: scheduling); // Open update dialog
               },
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent, // Destructive action color
+                backgroundColor: Colors.redAccent,
               ),
               child: const Text('Excluir'),
               onPressed: () async {
-                // Show confirmation dialog before deleting
                 final confirm = await showDialog<bool>(
                   context: context,
                   builder: (BuildContext context) => AlertDialog(
                     title: const Text('Confirmar Exclusão'),
-                    content: const Text(
-                        'Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.'),
+                    content: const Text('Tem certeza que deseja excluir este agendamento?'),
                     actions: <Widget>[
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(false),
@@ -401,31 +394,16 @@ class _SchedulingState extends State<Scheduling> {
                   ),
                 );
 
-                // If user confirmed, proceed with deletion
                 if (confirm == true) {
-                  final presenter =
-                      Provider.of<SchedulingPresenter>(context, listen: false);
+                  final presenter = Provider.of<SchedulingPresenter>(context, listen: false);
+                  Navigator.of(context).pop(); 
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('Excluindo agendamento...'),
+                    backgroundColor: Colors.blue,
+                  ));
+                  
                   try {
-                    // Close the details dialog first
-                    Navigator.of(context).pop(); 
-
-                    // Show a loading indicator
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('Excluindo agendamento...'),
-                      backgroundColor: Colors.blue,
-                    ));
-                    
                     await presenter.deleteScheduling(scheduling.id);
-                    
-                    // Remove the event from the calendar controller to update UI instantly
-                    final eventToRemove = eventsController.events.firstWhere(
-                        (e) => e.data?.id as int == scheduling.id,
-                        orElse: () => CalendarEvent(dateTimeRange: DateTimeRange(start: DateTime.now(), end: DateTime.now()), data: null));
-
-                    if(eventToRemove.data != null) {
-                      eventsController.removeEvent(eventToRemove);
-                    }
-
                     ScaffoldMessenger.of(context).hideCurrentSnackBar();
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -434,8 +412,8 @@ class _SchedulingState extends State<Scheduling> {
                       ),
                     );
                   } catch (e) {
-                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                    ScaffoldMessenger.of(context).showSnackBar(
+                     ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Erro ao excluir agendamento: $e'),
                         backgroundColor: Colors.red,
@@ -451,291 +429,279 @@ class _SchedulingState extends State<Scheduling> {
     );
   }
 
-void _showAddEventDialog() {
-  // Reset selected items when opening the dialog
-  _selectedService = null;
-  _selectedCustomer = null;
-  _selectedEmployee = null;
+  // Merged Add and Update Dialog
+  void _showAddOrUpdateEventDialog({entity.Scheduling? scheduling}) {
+    final bool isUpdating = scheduling != null;
 
-  DateTime initialDialogDate = DateTime.now();
-  TimeOfDay initialDialogTime =
-      TimeOfDay.fromDateTime(DateTime.now().add(const Duration(hours: 1)));
+    if (isUpdating) {
+      try {
+        _selectedService = _services.firstWhere((s) => s.id == scheduling!.idServico);
+      } catch (e) {
+        _selectedService = null;
+      }
+      try {
+        _selectedCustomer = _customers.firstWhere((c) => c.id == scheduling!.idCliente);
+      } catch (e) {
+        _selectedCustomer = null;
+      }
+      try {
+        _selectedEmployee = _employees.firstWhere((e) => e.id == scheduling!.idEmpresa);
+      } catch (e) {
+        _selectedEmployee = null;
+      }
+    } else {
+      _selectedService = null;
+      _selectedCustomer = null;
+      _selectedEmployee = null;
+    }
 
-  if (initialDialogTime.hour > 17) {
-    initialDialogDate = initialDialogDate.add(const Duration(days: 1));
-    initialDialogTime = const TimeOfDay(hour: 9, minute: 0);
-  }
+    DateTime selectedDate = isUpdating ? DateTime.parse(_formatDateISO(scheduling.inicio)) : DateTime.now();
+    TimeOfDay selectedTime = isUpdating ? TimeOfDay.fromDateTime(DateTime.parse(scheduling!.inicio).toLocal()) : TimeOfDay.fromDateTime(DateTime.now().add(const Duration(hours: 1)));
 
-  DateTime selectedDate = initialDialogDate;
-  TimeOfDay selectedTime = initialDialogTime;
+    final GlobalKey<State> dialogKey = GlobalKey<State>();
 
-  final GlobalKey<State> dialogKey = GlobalKey<State>();
-
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (BuildContext context) {
-      return StatefulBuilder(
-          key: dialogKey,
-          builder: (context, setDialogState) {
-            return Dialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              insetPadding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-              child: Container(
-                width: MediaQuery.of(context).size.width * 0.9,
-                constraints: const BoxConstraints(maxWidth: 600),
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.event_available,
-                                color: Theme.of(context).primaryColor),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Novo Agendamento',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+            key: dialogKey,
+            builder: (context, setDialogState) {
+              return Dialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                child: Container(
+                  width: MediaQuery.of(context).size.width * 0.9,
+                  constraints: const BoxConstraints(maxWidth: 600),
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(isUpdating ? Icons.edit_calendar : Icons.event_available,
+                                  color: Theme.of(context).primaryColor),
+                              const SizedBox(width: 8),
+                              Text(
+                                isUpdating ? 'Editar Agendamento' : 'Novo Agendamento',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const Spacer(),
+                              IconButton(
+                                icon: const Icon(Icons.close),
+                                onPressed: () => Navigator.of(context).pop(),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          // Dropdowns
+                          Card(
+                            elevation: 0,
+                            color: Colors.grey.shade100,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  DropdownButtonFormField<Servico>(
+                                    value: _selectedService,
+                                    hint: const Text('Selecione um Serviço'),
+                                    items: _services.map((Servico service) {
+                                      return DropdownMenuItem<Servico>(
+                                        value: service,
+                                        child: Text(service.nome),
+                                      );
+                                    }).toList(),
+                                    onChanged: (Servico? newValue) {
+                                      setDialogState(() {
+                                        _selectedService = newValue;
+                                      });
+                                    },
+                                    decoration: const InputDecoration(
+                                      labelText: 'Serviço',
+                                      border: OutlineInputBorder(),
+                                      prefixIcon: Icon(Icons.work_outline),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  DropdownButtonFormField<Customer>(
+                                    value: _selectedCustomer,
+                                    hint: const Text('Selecione um Cliente'),
+                                    items: _customers.map((Customer customer) {
+                                      return DropdownMenuItem<Customer>(
+                                        value: customer,
+                                        child: Text(customer.nome),
+                                      );
+                                    }).toList(),
+                                    onChanged: (Customer? newValue) {
+                                      setDialogState(() {
+                                        _selectedCustomer = newValue;
+                                      });
+                                    },
+                                    decoration: const InputDecoration(
+                                      labelText: 'Cliente',
+                                      border: OutlineInputBorder(),
+                                      prefixIcon: Icon(Icons.person_outline),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  DropdownButtonFormField<Employee>(
+                                    value: _selectedEmployee,
+                                    hint: const Text('Selecione um Funcionário'),
+                                    items: _employees.map((Employee employee) {
+                                      return DropdownMenuItem<Employee>(
+                                        value: employee,
+                                        child: Text(employee.nome),
+                                      );
+                                    }).toList(),
+                                    onChanged: (Employee? newValue) {
+                                      setDialogState(() {
+                                        _selectedEmployee = newValue;
+                                      });
+                                    },
+                                    decoration: const InputDecoration(
+                                      labelText: 'Funcionário',
+                                      border: OutlineInputBorder(),
+                                      prefixIcon: Icon(Icons.badge_outlined),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            const Spacer(),
-                            IconButton(
-                              icon: const Icon(Icons.close),
-                              onPressed: () => Navigator.of(context).pop(),
+                          ),
+                          const SizedBox(height: 16),
+                          // Date and Time Pickers
+                          Card(
+                            elevation: 0,
+                            color: Colors.grey.shade100,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        // Service, Customer, and Employee Dropdowns
-                        Card(
-                          elevation: 0,
-                          color: Colors.grey.shade100,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                DropdownButtonFormField<Servico>(
-                                  value: _selectedService,
-                                  hint: const Text('Selecione um Serviço'),
-                                  items: _services.map((Servico service) {
-                                    return DropdownMenuItem<Servico>(
-                                      value: service,
-                                      child: Text(service.nome),
-                                    );
-                                  }).toList(),
-                                  onChanged: (Servico? newValue) {
-                                    setDialogState(() {
-                                      _selectedService = newValue;
-                                    });
-                                  },
-                                  decoration: const InputDecoration(
-                                    labelText: 'Serviço',
-                                    border: OutlineInputBorder(),
-                                    prefixIcon: Icon(Icons.work_outline),
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                DropdownButtonFormField<Customer>(
-                                  value: _selectedCustomer,
-                                  hint: const Text('Selecione um Cliente'),
-                                  items: _customers.map((Customer customer) {
-                                    return DropdownMenuItem<Customer>(
-                                      value: customer,
-                                      child: Text(customer.nome),
-                                    );
-                                  }).toList(),
-                                  onChanged: (Customer? newValue) {
-                                    setDialogState(() {
-                                      _selectedCustomer = newValue;
-                                    });
-                                  },
-                                  decoration: const InputDecoration(
-                                    labelText: 'Cliente',
-                                    border: OutlineInputBorder(),
-                                    prefixIcon: Icon(Icons.person_outline),
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                DropdownButtonFormField<Employee>(
-                                  value: _selectedEmployee,
-                                  hint: const Text('Selecione um Funcionário'),
-                                  items: _employees.map((Employee employee) {
-                                    return DropdownMenuItem<Employee>(
-                                      value: employee,
-                                      child: Text(employee.nome),
-                                    );
-                                  }).toList(),
-                                  onChanged: (Employee? newValue) {
-                                    setDialogState(() {
-                                      _selectedEmployee = newValue;
-                                    });
-                                  },
-                                  decoration: const InputDecoration(
-                                    labelText: 'Funcionário',
-                                    border: OutlineInputBorder(),
-                                    prefixIcon: Icon(Icons.badge_outlined),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Card(
-                          elevation: 0,
-                          color: Colors.grey.shade100,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.calendar_today,
-                                      size: 18,
-                                      color: Theme.of(context).primaryColor,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Data e Horário',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Theme.of(context).primaryColor,
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  InkWell(
+                                    onTap: () async {
+                                      final DateTime? pickedDate =
+                                          await showDatePicker(
+                                        context: context,
+                                        initialDate: selectedDate,
+                                        firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                                        locale: const Locale('pt', 'BR'),
+                                      );
+                                      if (pickedDate != null) {
+                                        setDialogState(() {
+                                          selectedDate = pickedDate;
+                                        });
+                                      }
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.calendar_month,
+                                              color: Colors.grey),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            DateFormat('dd/MM/yyyy', 'pt_BR')
+                                                .format(selectedDate),
+                                            style: const TextStyle(fontSize: 16),
+                                          ),
+                                          const Spacer(),
+                                          const Icon(Icons.arrow_drop_down,
+                                              color: Colors.grey),
+                                        ],
                                       ),
                                     ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                InkWell(
-                                  onTap: () async {
-                                    final DateTime? pickedDate =
-                                        await showDatePicker(
-                                      context: context,
-                                      initialDate: selectedDate,
-                                      firstDate: DateTime.now()
-                                          .subtract(const Duration(days: 7)),
-                                      lastDate: DateTime.now()
-                                          .add(const Duration(days: 365)),
-                                      locale: const Locale('pt', 'BR'),
-                                    );
-                                    if (pickedDate != null) {
-                                      setDialogState(() {
-                                        selectedDate = pickedDate;
-                                      });
-                                    }
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 16),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        const Icon(Icons.calendar_month,
-                                            color: Colors.grey),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          DateFormat('dd/MM/yyyy', 'pt_BR')
-                                              .format(selectedDate),
-                                          style: const TextStyle(fontSize: 16),
-                                        ),
-                                        const Spacer(),
-                                        const Icon(Icons.arrow_drop_down,
-                                            color: Colors.grey),
-                                      ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  InkWell(
+                                    onTap: () async {
+                                      final TimeOfDay? pickedTime =
+                                          await showTimePicker(
+                                        context: context,
+                                        initialTime: selectedTime,
+                                      );
+                                      if (pickedTime != null) {
+                                        setDialogState(() {
+                                          selectedTime = pickedTime;
+                                        });
+                                      }
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.access_time,
+                                              color: Colors.grey),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}',
+                                            style: const TextStyle(fontSize: 16),
+                                          ),
+                                          const Spacer(),
+                                          const Icon(Icons.arrow_drop_down,
+                                              color: Colors.grey),
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(height: 12),
-                                InkWell(
-                                  onTap: () async {
-                                    final TimeOfDay? pickedTime =
-                                        await showTimePicker(
-                                      context: context,
-                                      initialTime: selectedTime,
-                                    );
-                                    if (pickedTime != null) {
-                                      setDialogState(() {
-                                        selectedTime = pickedTime;
-                                      });
-                                    }
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 16),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        const Icon(Icons.access_time,
-                                            color: Colors.grey),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}',
-                                          style: const TextStyle(fontSize: 16),
-                                        ),
-                                        const Spacer(),
-                                        const Icon(Icons.arrow_drop_down,
-                                            color: Colors.grey),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                              },
-                              child: const Text('Cancelar'),
-                            ),
-                            const SizedBox(width: 12),
-                            ElevatedButton(
-                              onPressed: () async {
-                                if (_selectedService == null ||
-                                    _selectedCustomer == null ||
-                                    _selectedEmployee == null) {
-                                  ScaffoldMessenger.of(context)
-                                      .showSnackBar(const SnackBar(
-                                    content: Text(
-                                        'Por favor, selecione serviço, cliente e funcionário.'),
-                                    backgroundColor: Colors.red,
-                                  ));
-                                  return;
-                                }
+                          const SizedBox(height: 20),
+                          // Action Buttons
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Text('Cancelar'),
+                              ),
+                              const SizedBox(width: 12),
+                              ElevatedButton(
+                                onPressed: () async {
+                                  if (_selectedService == null ||
+                                      _selectedCustomer == null ||
+                                      _selectedEmployee == null) {
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(const SnackBar(
+                                      content: Text('Por favor, preencha todos os campos.'),
+                                      backgroundColor: Colors.red,
+                                    ));
+                                    return;
+                                  }
 
-                                showDialog(
-                                  context: context,
-                                  barrierDismissible: false,
-                                  builder: (BuildContext context) {
-                                    return const Dialog(
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (BuildContext context) => const Dialog(
                                       child: Padding(
                                         padding: EdgeInsets.all(20.0),
                                         child: Row(
@@ -743,69 +709,74 @@ void _showAddEventDialog() {
                                           children: [
                                             CircularProgressIndicator(),
                                             SizedBox(width: 20),
-                                            Text("Agendando..."),
+                                            Text("Salvando..."),
                                           ],
                                         ),
                                       ),
-                                    );
-                                  },
-                                );
+                                    ),
+                                  );
 
-                                try {
-                                  await context
-                                      .read<SchedulingPresenter>()
-                                      .createScheduling(
+                                  final presenter = context.read<SchedulingPresenter>();
+                                  final dateStr = DateFormat('yyyy-MM-dd').format(selectedDate);
+                                  final timeStr = "${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}:00";
+                                  
+                                  try {
+                                    if (isUpdating) {
+                                      await presenter.updateScheduling(
+                                        scheduling.id,
                                         idService: _selectedService!.id!,
-                                        date: DateFormat('yyyy-MM-dd')
-                                            .format(selectedDate),
-                                        time:
-                                            "${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}:00",
                                         idCliente: _selectedCustomer!.id!,
                                         idFuncionario: _selectedEmployee!.id!,
+                                        date: dateStr,
+                                        time: timeStr,
                                       );
+                                    } else {
+                                      await presenter.createScheduling(
+                                        idService: _selectedService!.id!,
+                                        idCliente: _selectedCustomer!.id!,
+                                        idFuncionario: _selectedEmployee!.id!,
+                                        date: dateStr,
+                                        time: timeStr,
+                                      );
+                                    }
 
-                                  await loadSchedulings();
-                                  Navigator.of(context).pop(); // Close loading
-                                  Navigator.of(context).pop(); // Close add event
-                                  ScaffoldMessenger.of(context)
-                                      .showSnackBar(const SnackBar(
-                                    content: Text(
-                                        'Agendamento criado com sucesso!'),
-                                    backgroundColor: Colors.green,
-                                  ));
-                                } catch (e) {
-                                  Navigator.of(context).pop(); // Close loading
-                                  ScaffoldMessenger.of(context)
-                                      .showSnackBar(SnackBar(
-                                    content: Text(
-                                        'Erro ao agendar: ${e.toString()}'),
-                                    backgroundColor: Colors.red,
-                                  ));
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Theme.of(context).primaryColor,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                    Navigator.of(context).pop(); // Close loading
+                                    Navigator.of(context).pop(); // Close add/update event dialog
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(SnackBar(
+                                      content: Text('Agendamento ${isUpdating ? 'atualizado' : 'criado'} com sucesso!'),
+                                      backgroundColor: Colors.green,
+                                    ));
+                                  } catch (e) {
+                                    Navigator.of(context).pop(); // Close loading
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(SnackBar(
+                                      content: Text('Erro ao salvar: ${e.toString()}'),
+                                      backgroundColor: Colors.red,
+                                    ));
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Theme.of(context).primaryColor,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
                                 ),
+                                child: Text(isUpdating ? 'Salvar' : 'Agendar'),
                               ),
-                              child: const Text('Agendar'),
-                            ),
-                          ],
-                        ),
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            );
-          });
-    },
-  );
-}
-
-
+              );
+            });
+      },
+    );
+  }
   void _showAllSchedulingsDialog() {
     showDialog(
       context: context,
@@ -924,13 +895,13 @@ void _showAddEventDialog() {
                                               radius: 20, // Slightly smaller
                                               child: Text(
                                                 agendamento
-                                                        .nomeServico.isNotEmpty
-                                                    ? agendamento.nomeServico[0]
+                                                        .nomeCliente.isNotEmpty
+                                                    ? agendamento.nomeCliente[0]
                                                         .toUpperCase()
-                                                    : (agendamento.nomeEmpresa
+                                                    : (agendamento.nomeServico
                                                             .isNotEmpty
                                                         ? agendamento
-                                                            .nomeEmpresa[0]
+                                                            .nomeServico[0]
                                                             .toUpperCase()
                                                         : 'A'), // Fallback to 'A' for Agendamento
                                                 style: TextStyle(
@@ -950,7 +921,7 @@ void _showAddEventDialog() {
                                                     CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
-                                                    agendamento.nomeServico,
+                                                    agendamento.nomeCliente,
                                                     style: TextStyle(
                                                       fontSize:
                                                           17, // Slightly smaller
@@ -962,10 +933,10 @@ void _showAddEventDialog() {
                                                     overflow:
                                                         TextOverflow.ellipsis,
                                                   ),
-                                                  if (agendamento.nomeEmpresa
+                                                  if (agendamento.nomeServico
                                                       .isNotEmpty) // Show client name if available
                                                     Text(
-                                                      agendamento.nomeEmpresa,
+                                                      agendamento.nomeServico,
                                                       style: TextStyle(
                                                         fontSize:
                                                             13, // Slightly smaller
@@ -1105,6 +1076,18 @@ void _showAddEventDialog() {
     );
   }
 
+  String _formatDateISO(String dateTimeString) {
+    try {
+      final dateTime = DateTime.parse(dateTimeString);
+      return dateTime
+          .toLocal()
+          .toString()
+          .split(' ')[0]; // HH:mm format
+    } catch (e) {
+      return dateTimeString; // fallback
+    }
+  }
+
   String _formatDate(String date) {
     try {
       final dateTime = DateTime.parse(date);
@@ -1126,7 +1109,20 @@ void _showAddEventDialog() {
     }
     return time;
   }
-  
+
+  String _formatTimeFromDateTimeISOString(String dateTimeString) {
+    try {
+      final dateTime = DateTime.parse(dateTimeString);
+      return dateTime
+          .toLocal()
+          .toString()
+          .split(' ')[1]
+          .split('.')[0]; // HH:mm format
+    } catch (e) {
+      return dateTimeString; // fallback
+    }
+  }
+
   String _formatTimeFromDateTimeString(String dateTimeString) {
     try {
       final dateTime = DateTime.parse(dateTimeString);
@@ -1161,8 +1157,4 @@ void _showAddEventDialog() {
       return '${minutes}m';
     }
   }
-}
-
-extension on Object? {
-  get id => null;
 }

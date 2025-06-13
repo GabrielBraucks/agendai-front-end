@@ -126,11 +126,11 @@ class _ServiceRegisterState extends State<ServiceRegister> {
                                     category.isNotEmpty) {
                                   await context
                                       .read<ServicePresenter>()
-                                      .createService(
-                                        name: name,
-                                        value: value.toInt(),
-                                        duration: duration,
-                                        category: category,
+                                      .createServico(
+                                        nome: name,
+                                        preco: value,
+                                        duracao: duration,
+                                        categoria: category,
                                       );
 
                                   Navigator.pop(context, true);

@@ -9,38 +9,86 @@ class ServicePresenter extends ChangeNotifier {
 
   ServicePresenter({required this.api});
 
-  Future<void> createService({
-    required String name,
-    required int value,
-    required String duration,
-    required String category,
+  Future<void> createServico({
+    required String nome,
+    required double preco,
+    required String duracao,
+    required String categoria,
   }) async {
     loadingService = true;
     notifyListeners();
-    await api.createService(
-      name: name,
-      value: value,
-      duration: duration,
-      category: category,
-    );
-    loadingService = false;
-    notifyListeners();
+    try {
+      await api.createService(
+        name: nome,
+        preco: preco,
+        duracao: duracao,
+        category: categoria,
+      );
+      await getServicos(); // Recarrega a lista após a criação
+    } catch (e) {
+      print("Erro ao criar serviço: $e");
+      rethrow;
+    } finally {
+      loadingService = false;
+      notifyListeners();
+    }
   }
 
-  Future<List<Servico>> getServicos() async {
+  Future<void> getServicos() async {
     loadingService = true;
     notifyListeners();
-    List<Servico> todos = await api.getServices();
-    servicos = todos;
-    loadingService = false;
-    notifyListeners();
-    return todos;
+    try {
+      servicos = await api.getServices();
+    } catch (e) {
+      print("Erro ao buscar serviços: $e");
+      servicos = []; // Limpa a lista em caso de erro
+      rethrow;
+    } finally {
+      loadingService = false;
+      notifyListeners();
+    }
   }
 
-  Future deleteServicos(int id) async {
+  Future<void> updateServico({
+    required int id,
+    required String nome,
+    required double preco,
+    required String duracao,
+    required String categoria,
+  }) async {
     loadingService = true;
     notifyListeners();
-    await api.deleteService(id);
-    await getServicos();
+    try {
+      await api.updateService(
+        id: id,
+        nome: nome,
+        preco: preco,
+        duracao: duracao,
+        categoria: categoria,
+      );
+      await getServicos(); // Recarrega a lista após a atualização
+    } catch (e) {
+      print("Erro ao atualizar serviço: $e");
+      rethrow;
+    } finally {
+      loadingService = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteServicos(int id) async {
+    loadingService = true;
+    notifyListeners();
+    try {
+      await api.deleteService(id);
+      // Remove o item localmente para uma UI mais responsiva
+      servicos.removeWhere((servico) => servico.id == id);
+    } catch (e) {
+      print("Erro ao deletar serviço: $e");
+      rethrow;
+    } finally {
+      loadingService = false;
+      notifyListeners();
+    }
   }
 }

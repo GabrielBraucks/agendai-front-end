@@ -160,9 +160,9 @@ class _SidebarState extends State<Sidebar> {
                 _buildNavItem(
                   context,
                   icon: Icons.bar_chart_outlined,
-                  title: 'Relatórios',
-                  route: '/reports', // Example route
-                  selected: widget.selected == 'Relatorios',
+                  title: 'Recibos',
+                  route: '/receipts', // Example route
+                  selected: widget.selected == 'Recibos',
                   isCollapsed: _isCollapsed,
                   selectedColor: selectedItemColor,
                   iconTextColor: iconAndTextColor,

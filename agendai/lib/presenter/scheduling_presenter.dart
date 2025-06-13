@@ -39,16 +39,45 @@ class SchedulingPresenter extends ChangeNotifier {
     }
   }
 
+  Future<void> updateScheduling(
+    int id, {
+    required int idService,
+    required int idCliente,
+    required int idFuncionario,
+    required String date, // "2025-10-10"
+    required String time, // "14:30:00"
+  }) async {
+    loadingScheduling = true;
+    notifyListeners();
+    try {
+      final isoDateTime = DateTime.parse('$date $time').toUtc().toIso8601String();
+      await api.updateScheduling(
+        id,
+        idCliente: idCliente,
+        idFuncionario: idFuncionario,
+        idService: idService,
+        date: isoDateTime.split('T')[0],
+        time: isoDateTime.split('T')[1].substring(0, 8),
+      );
+      // Refresh data after update
+      await getScheduling();
+    } finally {
+      loadingScheduling = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> deleteScheduling(int id) async {
     loadingScheduling = true;
     notifyListeners();
 
     try {
       final success = await api.deleteScheduling(id);
-      if (success) {
-        // Remove o agendamento da lista local para atualizar a UI
-        scheduling.removeWhere((item) => item.id == id);
-      }
+      await getScheduling();
+      // if (success) {
+      //   // Remove o agendamento da lista local para atualizar a UI
+      //   scheduling.removeWhere((item) => item.id == id);
+      // }
     } finally {
       loadingScheduling = false;
       notifyListeners();
